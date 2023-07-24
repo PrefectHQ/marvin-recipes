@@ -2,9 +2,9 @@ import asyncio
 from abc import ABC, abstractmethod
 
 from marvin.utilities.collections import batched
-from marvin.utilities.documents import Document
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
+from marvin_recipes.models.documents import Document
 
 class Loader(MarvinBaseModel, LoggerMixin, ABC):
     """A base class for loaders."""
