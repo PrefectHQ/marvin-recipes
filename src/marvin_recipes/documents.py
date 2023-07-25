@@ -3,6 +3,7 @@ import inspect
 from typing import Callable, Optional
 
 from jinja2 import Template
+from marvin.utilities.async_utils import run_async
 from marvin.utilities.strings import (
     count_tokens,
     jinja_env,
@@ -130,20 +131,20 @@ async def _create_excerpt(
         else None
     )
 
-    excerpt_text = await excerpt_template.render_async(
+    excerpt_text = await run_async(
+        excerpt_template.render,
         document=document,
         excerpt_text=text,
         keywords=", ".join(keywords),
         minimap=minimap,
         **extra_template_kwargs,
     )
-    excerpt_metadata = document.metadata if document.metadata else {}
     return Document(
         type="excerpt",
         parent_document_id=document.id,
         text=excerpt_text,
         keywords=keywords,
-        metadata=excerpt_metadata,
+        metadata=document.metadata if document.metadata else {},
         tokens=count_tokens(excerpt_text),
     )
 

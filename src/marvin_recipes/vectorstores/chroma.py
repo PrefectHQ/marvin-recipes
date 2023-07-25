@@ -1,7 +1,9 @@
 from functools import lru_cache
+from typing import Literal
 
 import chromadb
 import marvin
+import openai
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Include, QueryResult
 from chromadb.errors import IDAlreadyExistsError
@@ -9,20 +11,25 @@ from marvin.utilities.async_utils import run_async
 
 import marvin_recipes
 from marvin_recipes.documents import Document
-from marvin_recipes.vectorstores.base import Vectorstore
+from marvin_recipes.vectorstores.base import AsyncVectorstore
 
 
 @lru_cache
-def get_client() -> "chromadb.Client":
-    return chromadb.Client(
-        # chroma 🤝 pydantic 🤝 marvin
+def get_client(
+    client_type: Literal["http", "base"] = "http",
+) -> "chromadb.HttpClient":
+    Client = "HttpClient" if client_type == "http" else "Client"
+    return getattr(chromadb, Client)(
         settings=chromadb.Settings(**marvin_recipes.settings.chroma.dict())
+        #                               marvin 🤝 pydantic 🤝 chroma
+        #                                            🤝
+        #                                          fastapi
     )
 
 
-class Chroma(Vectorstore):
+class Chroma(AsyncVectorstore):
     """
-    A wrapper for chromadb.Client - can be used as a context manager
+    A wrapper for chromadb.Client - used as an async context manager
     """
 
     def __init__(
@@ -78,6 +85,7 @@ class Chroma(Vectorstore):
         include: "Include" = ["metadatas"],
         **kwargs,
     ) -> "QueryResult":
+        openai.api_key = marvin.settings.openai.api_key.get_secret_value()
         return await run_async(
             self.collection.query,
             query_embeddings=query_embeddings,

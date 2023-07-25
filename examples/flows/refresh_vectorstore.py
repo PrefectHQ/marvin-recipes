@@ -1,4 +1,5 @@
 import re
+from datetime import timedelta
 
 import marvin
 from marvin_recipes.documents import Document
@@ -10,6 +11,7 @@ from marvin_recipes.vectorstores.chroma import Chroma
 from prefect import flow, task
 from prefect.blocks.core import Block
 from prefect.filesystems import GCS
+from prefect.tasks import task_input_hash
 from prefect.utilities.annotations import quote
 
 # Discourse categories
@@ -91,10 +93,11 @@ async def set_chroma_settings():
 @task(
     retries=2,
     retry_delay_seconds=[3, 60],
-    # cache_key_fn=task_input_hash,
-    # cache_expiration=timedelta(days=1),
+    cache_key_fn=task_input_hash,
+    cache_expiration=timedelta(days=1),
     task_run_name="Run {loader.__class__.__name__}",
     persist_result=True,
+    refresh_cache=True,
 )
 async def run_loader(loader: Loader) -> list[Document]:
     return await loader.load()
@@ -129,4 +132,4 @@ async def update_marvin_knowledge(
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(update_marvin_knowledge("marvin", wipe_collection=False))
+    asyncio.run(update_marvin_knowledge("marvin", wipe_collection=True))

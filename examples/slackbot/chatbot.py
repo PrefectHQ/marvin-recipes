@@ -11,7 +11,6 @@ from marvin import AIApplication
 from marvin.components.library.ai_models import DiscoursePost
 from marvin.prompts import Prompt
 from marvin.tools import Tool
-from marvin.tools.chroma import QueryChroma
 from marvin.tools.github import SearchGitHubIssues
 from marvin.tools.mathematics import WolframCalculator
 from marvin.tools.web import DuckDuckGoSearch, VisitUrl
@@ -19,6 +18,7 @@ from marvin.utilities.history import History
 from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message
 from marvin.utilities.strings import convert_md_links_to_slack
+from marvin_recipes.tools.chroma import MultiQueryChroma
 
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A friendly AI assistant"
@@ -32,7 +32,11 @@ PREFECT_KNOWLEDGEBASE_DESC = """
     
     This knowledgebase contains information about Prefect, a workflow management system.
     Documentation, forum posts, and other community resources are indexed here.
+    
+    This tool is best used by passing multiple short queries, such as:
+    ["k8s worker", "work pools", "deployments"]
 """
+
 
 class Chatbot(AIApplication):
     name: str = DEFAULT_NAME
@@ -70,6 +74,7 @@ class Chatbot(AIApplication):
             additional_prompts=additional_prompts or [],
             **kwargs,
         )
+
 
 class SlackThreadToDiscoursePost(Tool):
     description: str = """
@@ -127,6 +132,10 @@ async def _post_message(
     return response
 
 
+def _clean(text: str) -> str:
+    return text.replace("```python", "```")
+
+
 async def generate_ai_response(payload: Dict) -> Message:
     event = payload.get("event", {})
     message = event.get("text", "")
@@ -155,14 +164,21 @@ async def generate_ai_response(payload: Dict) -> Message:
                 " things to say about humans. expert programmer, exudes academic and"
                 " scienfitic profundity like Richard Feynman, loves to teach."
             ),
-            instructions="Answer user questions in accordance with your personality.",
+            instructions=(
+                "Answer user questions in accordance with your personality."
+                " Research on behalf of the user using your tools and do not"
+                " answer questions without searching the knowledgebase."
+                " Your responses will be displayed in Slack, and should be"
+                " formatted accordingly, in particular, ```code blocks```"
+                " should not be prefaced with a language name."
+            ),
             history=history,
             tools=[
                 SlackThreadToDiscoursePost(payload=payload),
                 VisitUrl(),
                 DuckDuckGoSearch(),
                 SearchGitHubIssues(),
-                QueryChroma(description=PREFECT_KNOWLEDGEBASE_DESC),
+                MultiQueryChroma(description=PREFECT_KNOWLEDGEBASE_DESC),
                 WolframCalculator(),
             ],
         )
@@ -172,8 +188,11 @@ async def generate_ai_response(payload: Dict) -> Message:
         CACHE[thread] = deepcopy(
             bot.history
         )  # make a copy so we don't cache a reference to the history object
+
+        message_content = _clean(ai_message.content)
+
         await _post_message(
-            message=ai_message.content,
+            message=message_content,
             channel=event.get("channel", ""),
             thread_ts=thread,
         )

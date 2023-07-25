@@ -27,8 +27,6 @@ async def query_chroma(
             include=include or ["documents"],
         )
 
-    print(results)
-
     return "\n".join(
         [
             f"{i+1}. {', '.join(excerpt)}"

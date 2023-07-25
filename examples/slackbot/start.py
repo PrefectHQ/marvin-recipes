@@ -13,4 +13,5 @@ deployment = Deployment(
     },
 )
 
-deployment.serve()
+if __name__ == "__main__":
+    deployment.serve()
