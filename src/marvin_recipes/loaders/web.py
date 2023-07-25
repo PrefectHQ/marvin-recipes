@@ -8,10 +8,10 @@ from fake_useragent import UserAgent
 from httpx import AsyncClient, Response
 from pydantic import Field, HttpUrl
 
-import marvin
-from marvin.loaders.base import Loader, MultiLoader
-from marvin.utilities.documents import Document, document_to_excerpts
-from marvin.utilities.strings import html_to_content
+from marvin_recipes.documents import Document, document_to_excerpts
+from marvin_recipes.loaders.base import Loader, MultiLoader
+from marvin_recipes.utilities.collections import batched
+from marvin_recipes.utilities.strings import html_to_content
 
 user_agent = UserAgent()
 
@@ -135,7 +135,7 @@ class SitemapLoader(URLLoader):
         return MultiLoader(
             loaders=[
                 type(self.url_loader)(urls=url_batch, headers=await self.get_headers())
-                for url_batch in marvin.utilities.collections.batched(urls, 10)
+                for url_batch in batched(urls, 10)
             ]
         )
 

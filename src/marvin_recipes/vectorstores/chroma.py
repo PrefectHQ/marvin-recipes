@@ -1,21 +1,22 @@
 from functools import lru_cache
 
 import chromadb
+import marvin
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Include, QueryResult
 from chromadb.errors import IDAlreadyExistsError
-
-import marvin
 from marvin.utilities.async_utils import run_async
-from marvin.utilities.documents import Document
-from marvin.vectorstores.base import Vectorstore
+
+import marvin_recipes
+from marvin_recipes.documents import Document
+from marvin_recipes.vectorstores.base import Vectorstore
 
 
 @lru_cache
 def get_client() -> "chromadb.Client":
     return chromadb.Client(
         # chroma 🤝 pydantic 🤝 marvin
-        settings=chromadb.Settings(**marvin.settings.chroma.dict())
+        settings=chromadb.Settings(**marvin_recipes.settings.chroma.dict())
     )
 
 

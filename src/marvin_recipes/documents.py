@@ -3,18 +3,17 @@ import inspect
 from typing import Callable, Optional
 
 from jinja2 import Template
-from pydantic import Field, confloat, validator
-from typing_extensions import Literal
-
-import marvin
-from marvin.utilities.ids import DocumentID
-from marvin.utilities.nlp import extract_keywords
 from marvin.utilities.strings import (
     count_tokens,
     jinja_env,
-    split_text,
 )
 from marvin.utilities.types import MarvinBaseModel
+from pydantic import Field, confloat, validator
+from typing_extensions import Literal
+
+import marvin_recipes
+from marvin_recipes.utilities.ids import DocumentID
+from marvin_recipes.utilities.strings import extract_keywords, split_text
 
 DocumentType = Literal["original", "excerpt", "summary"]
 
@@ -50,7 +49,7 @@ class Document(MarvinBaseModel):
 
     @property
     def hash(self):
-        return marvin.utilities.strings.hash_text(self.text)
+        return marvin_recipes.utilities.strings.hash_text(self.text)
 
     @validator("tokens", pre=True, always=True)
     def validate_tokens(cls, v, values):

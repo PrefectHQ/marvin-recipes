@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Callable, Dict, Optional
 
 import httpx
+import marvin
 from dotenv import load_dotenv
 from pydantic import (
     BaseModel,
@@ -13,9 +14,8 @@ from pydantic import (
     validator,
 )
 
-import marvin
-from marvin.loaders.base import Loader
-from marvin.utilities.documents import Document, document_to_excerpts
+from marvin_recipes.documents import Document, document_to_excerpts
+from marvin_recipes.loaders.base import Loader
 
 
 class DiscourseSettings(BaseSettings):

@@ -3,8 +3,8 @@ from typing import List
 import httpx
 from pydantic import HttpUrl
 
-from marvin.loaders.base import Loader
-from marvin.utilities.documents import Document, document_to_excerpts
+from marvin_recipes.documents import Document, document_to_excerpts
+from marvin_recipes.loaders.base import Loader
 
 
 class OpenAPISpecLoader(Loader):

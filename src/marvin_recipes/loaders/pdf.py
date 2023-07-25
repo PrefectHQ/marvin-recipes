@@ -10,11 +10,11 @@ try:
 except ModuleNotFoundError:
     raise ImportError(
         "The PDF loader requires the pypdf package. "
-        "Install it with `pip install 'marvin[pdf]'`."
+        "Install it with `pip install 'marvin_recipes[pdf]'`."
     )
 
-from marvin.loaders.base import Loader
-from marvin.utilities.documents import Document, document_to_excerpts
+from marvin_recipes.documents import Document, document_to_excerpts
+from marvin_recipes.loaders.base import Loader
 
 
 async def download_url_content(url: str) -> bytes:

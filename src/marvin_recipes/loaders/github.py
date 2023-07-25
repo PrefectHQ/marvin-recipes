@@ -13,10 +13,10 @@ import chardet
 import httpx
 from pydantic import BaseModel, BaseSettings, Field, SecretStr, validator
 
-from marvin.loaders.base import Loader
-from marvin.utilities.collections import multi_glob
-from marvin.utilities.documents import Document, document_to_excerpts
-from marvin.utilities.strings import rm_html_comments, rm_text_after
+from marvin_recipes.documents import Document, document_to_excerpts
+from marvin_recipes.loaders.base import Loader
+from marvin_recipes.utilities.collections import multi_glob
+from marvin_recipes.utilities.strings import rm_html_comments, rm_text_after
 
 
 def get_open_file_limit() -> int:
@@ -33,9 +33,6 @@ def get_open_file_limit() -> int:
             soft_limit, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
             return soft_limit
     except Exception:
-        # Catch all exceptions, as ctypes can raise several errors
-        # depending on what went wrong. Return a safe default if we
-        # can't get the limit from the OS.
         return 200
 
 
