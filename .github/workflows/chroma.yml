@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-chroma-image:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,5 +27,6 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: .
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/chroma:latest
