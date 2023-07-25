@@ -1,6 +1,5 @@
-from marvin.deployment import Deployment
-
 from chatbot import Chatbot, handle_message
+from marvin.deployment import Deployment
 
 deployment = Deployment(
     component=Chatbot(tools=[handle_message]),
@@ -9,6 +8,7 @@ deployment = Deployment(
         "description": "A Slackbot powered by Marvin",
     },
     uvicorn_kwargs={
+        "host": "localhost",  # replace with your public IP
         "port": 4200,
     },
 )
