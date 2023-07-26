@@ -3,11 +3,22 @@ name: Build Chroma Docker Image
 on:
   workflow_dispatch:
 
+# Do not grant jobs any permissions by default
+permissions: {}    
+
 jobs:
   build-chroma-image:
     runs-on: ubuntu-latest
+    permissions:
+      # required to read from the repo
+      contents: read
+      # required to obtain Google Cloud service account credentials
+      id-token: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
         with:
