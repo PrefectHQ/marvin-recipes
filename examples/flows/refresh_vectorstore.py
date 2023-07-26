@@ -1,15 +1,14 @@
 import re
 from datetime import timedelta
 
-import marvin
 from marvin_recipes.documents import Document
 from marvin_recipes.loaders.base import Loader
+from marvin_recipes.loaders.discourse import DiscourseLoader
 from marvin_recipes.loaders.github import GitHubRepoLoader
 from marvin_recipes.loaders.openapi import OpenAPISpecLoader
 from marvin_recipes.loaders.web import HTMLLoader, SitemapLoader
 from marvin_recipes.vectorstores.chroma import Chroma
 from prefect import flow, task
-from prefect.blocks.core import Block
 from prefect.filesystems import GCS
 from prefect.tasks import task_input_hash
 from prefect.utilities.annotations import quote
@@ -60,11 +59,11 @@ prefect_loaders = [
             "**/_version.py",
         ],
     ),
-    # DiscourseLoader(
-    #     url="https://discourse.prefect.io",
-    #     n_topic=300,
-    #     include_topic_filter=include_topic_filter,
-    # ),
+    DiscourseLoader(
+        url="https://discourse.prefect.io",
+        n_topic=300,
+        include_topic_filter=include_topic_filter,
+    ),
     GitHubRepoLoader(
         repo="prefecthq/prefect-recipes",
         include_globs=["flows-advanced/**/*.py", "README.md"],
@@ -76,20 +75,6 @@ prefect_loaders = [
 ]
 
 
-async def set_chroma_settings():
-    """
-    the `json/chroma-client-settings` Block should look like this:
-    {
-        "chroma_server_host": "<chroma server IP address>",
-        "chroma_server_http_port": <chroma server port>
-    }
-    """
-    chroma_client_settings = await Block.load("json/chroma-client-settings")
-
-    for key, value in chroma_client_settings.value.items():
-        setattr(marvin.settings, key, value)
-
-
 @task(
     retries=2,
     retry_delay_seconds=[3, 60],
@@ -97,7 +82,7 @@ async def set_chroma_settings():
     cache_expiration=timedelta(days=1),
     task_run_name="Run {loader.__class__.__name__}",
     persist_result=True,
-    refresh_cache=True,
+    # refresh_cache=True,
 )
 async def run_loader(loader: Loader) -> list[Document]:
     return await loader.load()
@@ -113,7 +98,6 @@ async def update_marvin_knowledge(
     wipe_collection: bool = True,
 ):
     """Flow updating Marvin's knowledge with info from the Prefect community."""
-    # forward_logger_to_prefect(get_marvin_logger())
 
     documents = [
         doc
@@ -121,7 +105,7 @@ async def update_marvin_knowledge(
         for doc in await future.result()
     ]
 
-    async with Chroma(collection_name) as chroma:
+    async with Chroma(collection_name, client_type="http") as chroma:
         if wipe_collection:
             await chroma.delete()
         n_docs = await chroma.add(documents)
@@ -132,4 +116,4 @@ async def update_marvin_knowledge(
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(update_marvin_knowledge("marvin", wipe_collection=True))
+    asyncio.run(update_marvin_knowledge("community", wipe_collection=True))

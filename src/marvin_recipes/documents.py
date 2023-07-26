@@ -35,13 +35,14 @@ class Document(MarvinBaseModel):
     web pages, git repos / issues, PDFs, and even just plain text files.
     """
 
+    text: str = Field(..., description="Document text content.")
+
     class Config:
         extra = "allow"
 
     id: str = Field(default_factory=DocumentID.new)
     parent_document_id: Optional[DocumentID] = Field(default=None)
 
-    text: str = Field(..., description="Document text content.")
     embedding: Optional[list[float]] = Field(default=None)
     metadata: DocumentMetadata = Field(default_factory=DocumentMetadata)
 

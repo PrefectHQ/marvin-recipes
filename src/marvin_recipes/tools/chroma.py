@@ -17,8 +17,9 @@ async def query_chroma(
     where_document: Optional[dict] = None,
     include: Optional[list[QueryResultType]] = None,
     max_characters: int = 2000,
+    client_type: str = "base",
 ) -> str:
-    async with Chroma(collection) as chroma:
+    async with Chroma(collection, client_type=client_type) as chroma:
         results = await chroma.query(
             query_texts=[query],
             n_results=n_results,
@@ -64,6 +65,8 @@ class MultiQueryChroma(Tool):
         Retrieve document excerpts from a knowledge-base given a query.
     """
 
+    client_type: Literal["http", "base"] = "http"
+
     async def run(
         self,
         queries: list[str],
@@ -88,6 +91,7 @@ class MultiQueryChroma(Tool):
                 where_document,
                 include,
                 max_characters // len(queries),
+                client_type=self.client_type,
             )
             for query in queries
         ]

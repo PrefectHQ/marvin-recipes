@@ -178,7 +178,9 @@ async def generate_ai_response(payload: Dict) -> Message:
                 VisitUrl(),
                 DuckDuckGoSearch(),
                 SearchGitHubIssues(),
-                MultiQueryChroma(description=PREFECT_KNOWLEDGEBASE_DESC),
+                MultiQueryChroma(
+                    description=PREFECT_KNOWLEDGEBASE_DESC, client_type="base"
+                ),
                 WolframCalculator(),
             ],
         )

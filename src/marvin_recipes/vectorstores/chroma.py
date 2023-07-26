@@ -1,9 +1,7 @@
-from functools import lru_cache
-from typing import Literal
+from typing import Literal, Union
 
 import chromadb
 import marvin
-import openai
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Include, QueryResult
 from chromadb.errors import IDAlreadyExistsError
@@ -14,17 +12,23 @@ from marvin_recipes.documents import Document
 from marvin_recipes.vectorstores.base import AsyncVectorstore
 
 
-@lru_cache
 def get_client(
     client_type: Literal["http", "base"] = "http",
-) -> "chromadb.HttpClient":
-    Client = "HttpClient" if client_type == "http" else "Client"
-    return getattr(chromadb, Client)(
-        settings=chromadb.Settings(**marvin_recipes.settings.chroma.dict())
-        #                               marvin 🤝 pydantic 🤝 chroma
-        #                                            🤝
-        #                                          fastapi
-    )
+) -> Union["chromadb.Client", "chromadb.HttpClient"]:
+    """
+    marvin 🤝 pydantic 🤝 chroma
+                🤝
+            fastapi
+    """
+    if client_type == "http":
+        return chromadb.HttpClient(
+            host=marvin_recipes.settings.chroma.chroma_server_host,
+            port=marvin_recipes.settings.chroma.chroma_server_http_port,
+        )
+    else:
+        return chromadb.Client(
+            settings=chromadb.Settings(**marvin_recipes.settings.chroma.dict())
+        )
 
 
 class Chroma(AsyncVectorstore):
@@ -36,10 +40,11 @@ class Chroma(AsyncVectorstore):
         self,
         collection_name: str = None,
         embedding_fn=None,
+        client_type: Literal["http", "base"] = "base",
     ):
         import chromadb.utils.embedding_functions as embedding_functions
 
-        self.client = get_client()
+        self.client = get_client(client_type=client_type)
         self.embedding_fn = embedding_fn or embedding_functions.OpenAIEmbeddingFunction(
             api_key=marvin.settings.openai.api_key.get_secret_value()
         )
@@ -85,7 +90,6 @@ class Chroma(AsyncVectorstore):
         include: "Include" = ["metadatas"],
         **kwargs,
     ) -> "QueryResult":
-        openai.api_key = marvin.settings.openai.api_key.get_secret_value()
         return await run_async(
             self.collection.query,
             query_embeddings=query_embeddings,
