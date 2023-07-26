@@ -16,6 +16,17 @@ jobs:
       id-token: write
 
     steps:
+      - name: Checkout chroma-core/chroma repository
+        uses: actions/checkout@v2
+        with:
+          repository: chroma-core/chroma
+
+      - name: Build container image
+        run: |
+          docker build .
+            --no-cache \
+            --tag us-docker.pkg.dev/prefect-prd-internal-tools/marvin-recipes/chroma:latest
+  
       - name: Checkout repository
         uses: actions/checkout@v3
         
@@ -28,18 +39,5 @@ jobs:
       - name: Configure Google Cloud credential helper
         run: gcloud auth configure-docker --quiet us-docker.pkg.dev
 
-      - name: Checkout chroma-core/chroma repository
-        uses: actions/checkout@v2
-        with:
-          repository: chroma-core/chroma
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: us-docker.pkg.dev/prefect-prd-internal-tools/marvin-recipes/chroma:latest
+      - name: Push image to prefect-prd-internal-tools
+        run: docker push us-docker.pkg.dev/prefect-prd-internal-tools/marvin-recipes/chroma:latest
