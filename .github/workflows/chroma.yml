@@ -23,9 +23,7 @@ jobs:
 
       - name: Build container image
         run: |
-          docker build .
-            --no-cache \
-            --tag us-docker.pkg.dev/prefect-prd-internal-tools/marvin-recipes/chroma:latest
+          docker build . --tag us-docker.pkg.dev/prefect-prd-internal-tools/marvin-recipes/chroma:latest
   
       - name: Checkout repository
         uses: actions/checkout@v3
