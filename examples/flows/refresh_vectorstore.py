@@ -116,4 +116,4 @@ async def update_marvin_knowledge(
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(update_marvin_knowledge("community", wipe_collection=True))
+    asyncio.run(update_marvin_knowledge("marvin", wipe_collection=True))
