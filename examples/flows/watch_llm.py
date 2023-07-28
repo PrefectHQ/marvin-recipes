@@ -91,6 +91,9 @@ class WatchLLM(BaseModel, ContextDecorator):
         self._patched_methods.append((cls, method_name, original_method))
 
 
+####################################################################################################
+# Example usage in a wrapping (but not necessary) parent flow
+
 if __name__ == "__main__":
     todo = AIApplication(
         name="todo",
