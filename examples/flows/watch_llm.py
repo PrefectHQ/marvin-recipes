@@ -1,13 +1,25 @@
+import asyncio
+import importlib
 import inspect
+import warnings
 from contextlib import ContextDecorator
 from functools import wraps
-from typing import Callable, Type, TypeVar
+from typing import Callable, Optional, TypeVar
 
-from marvin.engine.language_models import ChatLLM
+from marvin import AIApplication
 from prefect import Flow, flow
 from prefect import tags as prefect_tags
+from pydantic import BaseModel, PrivateAttr
+
+warnings.filterwarnings(  # I know, I know, later
+    "ignore",
+    category=UserWarning,
+    message=".*JSON schema has no equivalent type.*",
+)
 
 T = TypeVar("T")
+
+DEFAULT_FLOW_SETTINGS = {"validate_parameters": False, "flow_run_name": "{self.name}"}
 
 
 async def record_usage(ai_app_result: dict):
@@ -28,14 +40,9 @@ def prefect_wrapped_function(
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        if (settings := flow_kwargs) is None:
-            settings = {
-                "validate_parameters": False,
-                "flow_run_name": "call {self.name}",
-            }
-        wrapped_callable = decorator(**settings)(func)
+        settings = {**(flow_kwargs or {}), **DEFAULT_FLOW_SETTINGS}
         with prefect_tags(*tags):
-            result = wrapped_callable(*args, **kwargs)
+            result = decorator(func, **settings)(*args, **kwargs)
             if inspect.isawaitable(result):
                 result = await result
 
@@ -45,39 +52,33 @@ def prefect_wrapped_function(
     return wrapper
 
 
-class WatchLLM(ContextDecorator):
+class WatchLLM(BaseModel, ContextDecorator):
     """Context decorator for patching a method with a prefect flow."""
 
-    def __init__(
-        self,
-        patch_cls: Type = ChatLLM,
-        patch_method_name: str = "run",
-        tags: set | None = None,
-        flow_kwargs: dict | None = None,
-    ):
-        """Initialize the context manager.
-        Args:
-            tags: Prefect tags to apply to the flow.
-            flow_kwargs: Keyword arguments to pass to the flow.
-        """
-        self.patch_cls = patch_cls
-        self.patch_method = patch_method_name
-        self.tags = tags
-        self.flow_kwargs = flow_kwargs
+    patch_cls: str = "marvin.engine.language_models.ChatLLM"
+    patch_method_name: str = "run"
+    tags: Optional[set] = None
+    flow_kwargs: Optional[dict] = None
+    _patched_methods: list[tuple[type, str, Callable]] = PrivateAttr(
+        default_factory=list
+    )
 
     def __enter__(self):
         """Called when entering the context manager."""
-        self.patched_methods = []
-        for cls in {self.patch_cls, *self.patch_cls.__subclasses__()}:
+        module_name, class_name = self.patch_cls.rsplit(".", 1)
+        module = importlib.import_module(module_name)
+        patch_cls = getattr(module, class_name)
+
+        for cls in {patch_cls, *patch_cls.__subclasses__()}:
             self._patch_method(
                 cls=cls,
-                method_name=self.patch_method,
+                method_name=self.patch_method_name,
                 decorator=prefect_wrapped_function,
             )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Reset methods when exiting the context manager."""
-        for cls, method_name, original_method in self.patched_methods:
+        for cls, method_name, original_method in self._patched_methods:
             setattr(cls, method_name, original_method)
 
     def _patch_method(self, cls, method_name, decorator):
@@ -87,21 +88,10 @@ class WatchLLM(ContextDecorator):
             original_method, tags=self.tags, flow_kwargs=self.flow_kwargs
         )
         setattr(cls, method_name, modified_method)
-        self.patched_methods.append((cls, method_name, original_method))
+        self._patched_methods.append((cls, method_name, original_method))
 
 
 if __name__ == "__main__":
-    import warnings  # I know, I know, later
-
-    warnings.filterwarnings(
-        "ignore",
-        category=UserWarning,
-        message=".*was excluded from schema since JSON schema has no equivalent type.*",
-    )
-    import asyncio
-
-    from marvin import AIApplication
-
     todo = AIApplication(
         name="todo",
         description="A todo tracker.",
@@ -111,7 +101,7 @@ if __name__ == "__main__":
     @flow(log_prints=True)
     async def interact(message: str) -> str:
         """Interact with the user."""
-        with WatchLLM():
+        with WatchLLM(tags={"ai_todo_app"}):
             response = await todo.run(input_text=message)
             print(response.content)
 
