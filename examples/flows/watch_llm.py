@@ -74,7 +74,6 @@ class WatchLLM(BaseModel, ContextDecorator):
             self._patch_method(
                 cls=cls,
                 method_name=self.patch_method_name,
-                decorator=self.patch_decorator,
             )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -82,10 +81,10 @@ class WatchLLM(BaseModel, ContextDecorator):
         for cls, method_name, original_method in self._patched_methods:
             setattr(cls, method_name, original_method)
 
-    def _patch_method(self, cls, method_name, decorator):
+    def _patch_method(self, cls, method_name):
         """Patch a method on a class with a decorator."""
         original_method = getattr(cls, method_name)
-        modified_method = decorator(
+        modified_method = self.patch_decorator(
             original_method, tags=self.tags, flow_kwargs=self.flow_kwargs
         )
         setattr(cls, method_name, modified_method)
