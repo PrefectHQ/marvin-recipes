@@ -57,6 +57,7 @@ class WatchLLM(BaseModel, ContextDecorator):
 
     patch_cls: str = "marvin.engine.language_models.ChatLLM"
     patch_method_name: str = "run"
+    patch_decorator: Callable = prefect_wrapped_function
     tags: Optional[set] = None
     flow_kwargs: Optional[dict] = None
     _patched_methods: list[tuple[type, str, Callable]] = PrivateAttr(
@@ -73,7 +74,7 @@ class WatchLLM(BaseModel, ContextDecorator):
             self._patch_method(
                 cls=cls,
                 method_name=self.patch_method_name,
-                decorator=prefect_wrapped_function,
+                decorator=self.patch_decorator,
             )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -104,7 +105,7 @@ if __name__ == "__main__":
     @flow(log_prints=True)
     async def interact(message: str) -> str:
         """Interact with the user."""
-        with WatchLLM(tags={"ai_todo_app"}):
+        with WatchLLM(tags={"ai-todo-app"}):
             response = await todo.run(input_text=message)
             print(response.content)
 

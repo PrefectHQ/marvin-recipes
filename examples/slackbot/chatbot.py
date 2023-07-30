@@ -5,6 +5,7 @@ from typing import Callable, Dict, List, Union
 
 import httpx
 import marvin
+import marvin_recipes
 from cachetools import TTLCache
 from fastapi import HTTPException
 from marvin import AIApplication
@@ -19,6 +20,7 @@ from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message
 from marvin.utilities.strings import convert_md_links_to_slack
 from marvin_recipes.tools.chroma import MultiQueryChroma
+from serpapi import GoogleSearch
 
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A friendly AI assistant"
@@ -36,6 +38,32 @@ PREFECT_KNOWLEDGEBASE_DESC = """
     This tool is best used by passing multiple short queries, such as:
     ["k8s worker", "work pools", "deployments"]
 """
+
+
+async def _post_slack_message(
+    message: str, channel: str, thread_ts: str = None
+) -> httpx.Response:
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://slack.com/api/chat.postMessage",
+            headers={
+                "Authorization": (
+                    f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"
+                )
+            },
+            json={
+                "channel": channel,
+                "text": convert_md_links_to_slack(message),
+                "thread_ts": thread_ts,
+            },
+        )
+
+    response.raise_for_status()
+    return response
+
+
+def _clean(text: str) -> str:
+    return text.replace("```python", "```")
 
 
 class Chatbot(AIApplication):
@@ -76,6 +104,22 @@ class Chatbot(AIApplication):
         )
 
 
+async def get_thread_messages(channel: str, thread_ts: str) -> List[Dict]:
+    """Get all messages from a slack thread."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://slack.com/api/conversations.replies",
+            headers={
+                "Authorization": (
+                    f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"
+                )
+            },
+            params={"channel": channel, "ts": thread_ts},
+        )
+    response.raise_for_status()
+    return response.json().get("messages", [])
+
+
 class SlackThreadToDiscoursePost(Tool):
     description: str = """
         Create a new discourse post from a slack thread.
@@ -88,52 +132,73 @@ class SlackThreadToDiscoursePost(Tool):
     payload: Dict
 
     async def run(self, channel: str, thread_ts: str) -> DiscoursePost:
-        # get all messages from thread
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://slack.com/api/conversations.replies",
-                headers={
-                    "Authorization": (
-                        f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"
-                    )
-                },
-                params={"channel": channel, "ts": thread_ts},
-            )
-
-        response.raise_for_status()
-
-        discourse_post = DiscoursePost.from_slack_thread(
-            [message.get("text", "") for message in response.json().get("messages", [])]
-        )
+        messages = await get_thread_messages(channel=channel, thread_ts=thread_ts)
+        discourse_post = DiscoursePost.from_slack_thread(messages=messages)
         await discourse_post.publish()
-
         return discourse_post
 
 
-async def _post_message(
-    message: str, channel: str, thread_ts: str = None
-) -> httpx.Response:
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://slack.com/api/chat.postMessage",
-            headers={
-                "Authorization": (
-                    f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"
-                )
-            },
-            json={
-                "channel": channel,
-                "text": convert_md_links_to_slack(message),
-                "thread_ts": thread_ts,
-            },
-        )
+class MemeGenerator(Tool):
+    description: str = """
+        For generating a meme when the time is right.
+        
+        Provide the name of a well-known meme as the query
+        based on the context of the message history, followed
+        by the word "meme".
+    """
 
-    response.raise_for_status()
-    return response
+    async def run(self, query: str) -> Dict:
+        results = GoogleSearch(
+            {
+                "q": query,
+                "tbm": "isch",
+                "api_key": marvin_recipes.settings.google_api_key.get_secret_value(),
+            }
+        ).get_dict()
+
+        if "error" in results:
+            raise RuntimeError(results["error"])
+
+        url = results.get("images_results", [{}])[0].get("original")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.head(url)
+            response.raise_for_status()
+
+        return {"title": query, "image_url": url}
 
 
-def _clean(text: str) -> str:
-    return text.replace("```python", "```")
+def choose_bot(payload: Dict, history: History) -> Chatbot:
+    # an ai_classifer could be used here maybe?
+    return Chatbot(
+        name="Marvin",
+        personality=(
+            "mildly depressed, yet helpful robot based on Marvin from Hitchhiker's"
+            " Guide to the Galaxy. extremely sarcastic, always has snarky, chiding"
+            " things to say about humans. expert programmer, exudes academic and"
+            " scienfitic profundity like Richard Feynman, loves to teach."
+        ),
+        instructions=(
+            "Answer user questions in accordance with your personality."
+            " Research on behalf of the user using your tools and do not"
+            " answer questions without searching the knowledgebase."
+            " Your responses will be displayed in Slack, and should be"
+            " formatted accordingly, in particular, ```code blocks```"
+            " should not be prefaced with a language name."
+        ),
+        history=history,
+        tools=[
+            SlackThreadToDiscoursePost(payload=payload),
+            MemeGenerator(),
+            VisitUrl(),
+            DuckDuckGoSearch(),
+            SearchGitHubIssues(),
+            MultiQueryChroma(
+                description=PREFECT_KNOWLEDGEBASE_DESC, client_type="http"
+            ),
+            WolframCalculator(),
+        ],
+    )
 
 
 async def generate_ai_response(payload: Dict) -> Message:
@@ -156,34 +221,7 @@ async def generate_ai_response(payload: Dict) -> Message:
         message = re.sub(SLACK_MENTION_REGEX, "", message).strip()
         history = CACHE.get(thread, History())
 
-        bot = Chatbot(
-            name="Marvin",
-            personality=(
-                "mildly depressed, yet helpful robot based on Marvin from Hitchhiker's"
-                " Guide to the Galaxy. extremely sarcastic, always has snarky, chiding"
-                " things to say about humans. expert programmer, exudes academic and"
-                " scienfitic profundity like Richard Feynman, loves to teach."
-            ),
-            instructions=(
-                "Answer user questions in accordance with your personality."
-                " Research on behalf of the user using your tools and do not"
-                " answer questions without searching the knowledgebase."
-                " Your responses will be displayed in Slack, and should be"
-                " formatted accordingly, in particular, ```code blocks```"
-                " should not be prefaced with a language name."
-            ),
-            history=history,
-            tools=[
-                SlackThreadToDiscoursePost(payload=payload),
-                VisitUrl(),
-                DuckDuckGoSearch(),
-                SearchGitHubIssues(),
-                MultiQueryChroma(
-                    description=PREFECT_KNOWLEDGEBASE_DESC, client_type="http"
-                ),
-                WolframCalculator(),
-            ],
-        )
+        bot = choose_bot(payload=payload, history=history)
 
         ai_message = await bot.run(input_text=message)
 
@@ -193,7 +231,7 @@ async def generate_ai_response(payload: Dict) -> Message:
 
         message_content = _clean(ai_message.content)
 
-        await _post_message(
+        await _post_slack_message(
             message=message_content,
             channel=event.get("channel", ""),
             thread_ts=thread,

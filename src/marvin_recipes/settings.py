@@ -1,14 +1,11 @@
 from typing import Any
 
 from marvin.settings import MarvinBaseSettings
-from pydantic import Field
+from pydantic import Field, SecretStr
 
 
 class ChromaSettings(MarvinBaseSettings):
     """Provider-specific settings. Only some of these will be relevant to users."""
-
-    class Config:
-        env_prefix = "MARVIN_"
 
     chroma_db_impl: str = Field(None)
     chroma_server_host: str = Field("localhost")
@@ -23,6 +20,7 @@ class Settings(MarvinBaseSettings):
     """Marvin integration settings"""
 
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
+    google_api_key: SecretStr = Field(None)
 
 
 settings = Settings()
