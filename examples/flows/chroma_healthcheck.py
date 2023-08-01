@@ -3,6 +3,6 @@ from prefect import flow
 
 
 @flow
-async def test_connection():
-    async with Chroma() as chroma:
+async def test_connection(client_type: str = "http"):
+    async with Chroma(client_type=client_type) as chroma:
         assert chroma.ok()
