@@ -5,4 +5,4 @@ from prefect import flow
 @flow
 async def test_connection():
     async with Chroma() as chroma:
-        return await chroma.ok()
+        assert chroma.ok()
