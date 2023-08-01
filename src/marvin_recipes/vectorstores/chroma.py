@@ -1,4 +1,4 @@
-from typing import Literal, Union
+from typing import Literal
 
 import chromadb
 import marvin
@@ -12,13 +12,12 @@ from marvin_recipes.documents import Document
 from marvin_recipes.vectorstores.base import AsyncVectorstore
 
 
-def get_client(
-    client_type: Literal["http", "base"] = "http",
-) -> Union["chromadb.Client", "chromadb.HttpClient"]:
-    """
+def get_client(client_type: Literal["http", "base"] = "http") -> "chromadb.Client":
+    """Returns a certain type of chromadb client.
+
     marvin 🤝 pydantic 🤝 chroma
-                🤝
-            fastapi
+                 🤝
+              fastapi
     """
     if client_type == "http":
         return chromadb.HttpClient(

@@ -37,6 +37,7 @@ class Document(MarvinBaseModel):
 
     text: str = Field(..., description="Document text content.")
 
+    # link: str | None = Field(default=None, description="Document link.")
     class Config:
         extra = "allow"
 

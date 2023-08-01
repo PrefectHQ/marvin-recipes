@@ -1,0 +1,3 @@
+{
+  "test-connection": "examples/flows/chroma_healthcheck.py:test_connection"
+}

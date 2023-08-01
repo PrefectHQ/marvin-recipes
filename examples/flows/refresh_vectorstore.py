@@ -105,7 +105,7 @@ async def update_marvin_knowledge(
         for doc in await future.result()
     ]
 
-    async with Chroma(collection_name, client_type="http") as chroma:
+    async with Chroma(collection_name) as chroma:
         if wipe_collection:
             await chroma.delete()
         n_docs = await chroma.add(documents)
