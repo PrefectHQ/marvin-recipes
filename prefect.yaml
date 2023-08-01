@@ -5,14 +5,20 @@ build: null
 
 push: null
 
-pull:
+pull: # to run on the worker just before the flow run is executed
 - prefect.deployments.steps.git_clone:
     repository: https://github.com/PrefectHQ/marvin-recipes.git
     branch: main
     access_token: null
+- prefect.deployments.steps.run_shell_script:
+    script: pip install 'git+https://github.com/PrefectHQ/marvin-recipes.git@main#egg=marvin_recipes[all]'
 
 deployments:
 - name: chroma-healthcheck
   entrypoint: examples/flows/chroma_healthcheck.py:test_connection
   work_pool:
     name: kubernetes-prd-internal-tools
+    job_variables:
+      env:
+        MARVIN_CHROMA_SERVER_HOST: "{{ $MARVIN_CHROMA_SERVER_HOST }}"
+        MARVIN_CHROMA_SERVER_HTTP_PORT: "{{ $MARVIN_CHROMA_SERVER_HTTP_PORT }}"
