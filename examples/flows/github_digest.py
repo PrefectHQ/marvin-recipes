@@ -47,7 +47,7 @@ REPO_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
 @ai_fn(
     instructions="You are a witty and subtle orator. Speak to us of the day's events."
 )
-def summarize_digest(markdown_digest: str):
+def summarize_digest(markdown_digest: str) -> str:
     """Given a markdown digest of GitHub activity, create a story that is
     informative, entertaining, and epic in proportion to the day's events -
     an empty day should be handled with a short sarcastic quip about humans
