@@ -43,8 +43,10 @@ REPO_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
 
 
 @task(timeout_seconds=90, retries=1)
-@ai_fn
-def summarize_digest(markdown_digest: str) -> str:
+@ai_fn(
+    instructions="You are a witty and subtle orator. Speak to us of the day's events."
+)
+def summarize_digest(markdown_digest: str):
     """
     Given a markdown digest of GitHub activity, create an epic story in markdown.
 
@@ -92,7 +94,7 @@ async def get_repo_activity_data(owner, repo, gh_token_secret_name, since, max=1
             if (
                 event["type"] == "IssuesEvent"
                 and event["payload"]["action"] == "opened"
-            ):  # noqa: E501
+            ):
                 contributors_activity[contributor_username]["created_issues"].append(
                     event["payload"]["issue"]
                 )
@@ -100,7 +102,7 @@ async def get_repo_activity_data(owner, repo, gh_token_secret_name, since, max=1
             elif (
                 event["type"] == "PullRequestEvent"
                 and event["payload"]["action"] == "opened"
-            ):  # noqa: E501
+            ):
                 contributors_activity[contributor_username][
                     "created_pull_requests"
                 ].append(event["payload"]["pull_request"])
@@ -108,7 +110,6 @@ async def get_repo_activity_data(owner, repo, gh_token_secret_name, since, max=1
             elif event["type"] == "PushEvent":
                 for commit_data in event["payload"]["commits"]:
                     commit = (await client.get(commit_data["url"])).json()
-                    # Remove the co-authored-by lines from the commit message
                     commit_message = commit["commit"]["message"].split("\n")
                     cleaned_commit_message = "\n".join(
                         line
@@ -120,7 +121,7 @@ async def get_repo_activity_data(owner, repo, gh_token_secret_name, since, max=1
                     if (
                         "Merge remote-tracking branch" not in commit_msg
                         and "Merge branch" not in commit_msg
-                    ):  # noqa: E501
+                    ):
                         contributors_activity[contributor_username][
                             "merged_commits"
                         ].append(commit)
@@ -128,7 +129,7 @@ async def get_repo_activity_data(owner, repo, gh_token_secret_name, since, max=1
     return contributors_activity
 
 
-@flow
+@flow(name="Daily GitHub Digest", flow_run_name="Digest {owner}/{repo}")
 async def daily_github_digest(
     owner: str = "PrefectHQ",
     repo: str = "prefect",

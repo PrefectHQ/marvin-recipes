@@ -1,6 +1,6 @@
 import itertools
 from pathlib import Path
-from typing import Any, Callable, Iterable, TypeVar
+from typing import Any, Callable, Iterable, List, Set, TypeVar
 
 T = TypeVar("T")
 
@@ -37,16 +37,24 @@ def batched(
             yield batch
 
 
-def multi_glob(directory=None, keep_globs=None, drop_globs=None) -> list[Path]:
+def multi_glob(
+    directory: str | None = None,
+    keep_globs: List[str] | None = None,
+    drop_globs: List[str] | None = None,
+) -> List[Path]:
+    """
+    Return a list of all files in the given directory that match the
+    patterns in keep_globs and do not match the patterns in drop_globs.
+    The patterns are defined using glob syntax.
+    """
     keep_globs = keep_globs or ["**/*"]
     drop_globs = drop_globs or [".git/**/*"]
-
     directory_path = Path(directory) if directory else Path.cwd()
 
     if not directory_path.is_dir():
         raise ValueError(f"'{directory}' is not a directory.")
 
-    def files_from_globs(globs):
+    def files_from_globs(globs: List[str]) -> Set[Path]:
         return {
             file
             for pattern in globs
@@ -55,5 +63,4 @@ def multi_glob(directory=None, keep_globs=None, drop_globs=None) -> list[Path]:
         }
 
     matching_files = files_from_globs(keep_globs) - files_from_globs(drop_globs)
-
     return [file.relative_to(directory_path) for file in matching_files]

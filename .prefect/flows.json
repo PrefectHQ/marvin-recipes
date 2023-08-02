@@ -1,3 +1,4 @@
 {
+  "daily-github-digest": "examples/flows/github_digest.py:daily_github_digest",
   "test-connection": "examples/flows/chroma_healthcheck.py:test_connection"
 }
