@@ -20,13 +20,18 @@ deployments:
     name: kubernetes-prd-internal-tools
     job_variables:
       env:
+        MARVIN_OPENAI_API_KEY: "{{ prefect.blocks.secrets.openai-api-key }}"
         MARVIN_CHROMA_SERVER_HOST: "{{ $MARVIN_CHROMA_SERVER_HOST }}"
         MARVIN_CHROMA_SERVER_HTTP_PORT: "{{ $MARVIN_CHROMA_SERVER_HTTP_PORT }}"
-        MARVIN_OPENAI_API_KEY: "{{ $MARVIN_OPENAI_API_KEY }}"
+
 - name: prefect-github-digest
   entrypoint: examples/flows/github_digest.py:daily_github_digest
   work_pool:
     name: kubernetes-prd-internal-tools
+    schedule:
+      cron: "0 20 * * 1-5"
     job_variables:
       env:
-        MARVIN_OPENAI_API_KEY: "{{ $MARVIN_OPENAI_API_KEY }}"
+        MARVIN_OPENAI_API_KEY: "{{ prefect.blocks.secrets.openai-api-key }}"
+        PREFECT_LOGGING_EXTRA_LOGGERS: "marvin"
+        PREFECT_LOGGING_LEVEL: "DEBUG"

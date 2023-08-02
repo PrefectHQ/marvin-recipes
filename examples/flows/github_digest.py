@@ -1,9 +1,9 @@
 import inspect
 from datetime import date, datetime, timedelta
 
-import httpx
 from marvin import ai_fn
 from marvin.utilities.strings import jinja_env
+from marvin_recipes.utilities.slack import fetch_contributor_data
 from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
 from prefect.blocks.system import Secret
@@ -45,7 +45,10 @@ REPO_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
     instructions="You are a witty and subtle orator. Speak to us of the day's events."
 )
 def summarize_digest(markdown_digest: str):
-    """Given a markdown digest of GitHub activity, create an epic story in markdown.
+    """Given a markdown digest of GitHub activity, create a story that is
+    informative, entertaining, and epic in proportion to the day's events -
+    an empty day should be handled with a short sarcastic quip about humans
+    and their laziness.
 
     The story should capture collective efforts of the project.
     Each contributor plays a role in this story, their actions
@@ -59,72 +62,24 @@ def summarize_digest(markdown_digest: str):
     """  # noqa: E501
 
 
-@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
-async def get_repo_activity_data(owner, repo, gh_token_secret_name, since, max=100):
-    events_url = f"https://api.github.com/repos/{owner}/{repo}/events?per_page={max}"
-
-    token = await Secret.load(gh_token_secret_name)
-
-    contributors_activity = {}
-
-    async with httpx.AsyncClient(
-        headers={
-            "Accept": "application/vnd.github.v3+json",
-            "Authorization": f"token {token.get()}",
-        }
-    ) as client:
-        events = (await client.get(events_url)).json()
-
-        for event in events:
-            created_at = datetime.fromisoformat(event["created_at"].rstrip("Z"))
-            if created_at < since:
-                continue
-
-            contributor_username = event["actor"]["login"]
-
-            if contributor_username not in contributors_activity:
-                contributors_activity[contributor_username] = {
-                    "created_issues": [],
-                    "created_pull_requests": [],
-                    "merged_commits": [],
-                }
-
-            if (
-                event["type"] == "IssuesEvent"
-                and event["payload"]["action"] == "opened"
-            ):
-                contributors_activity[contributor_username]["created_issues"].append(
-                    event["payload"]["issue"]
-                )
-
-            elif (
-                event["type"] == "PullRequestEvent"
-                and event["payload"]["action"] == "opened"
-            ):
-                contributors_activity[contributor_username][
-                    "created_pull_requests"
-                ].append(event["payload"]["pull_request"])
-
-            elif event["type"] == "PushEvent":
-                for commit_data in event["payload"]["commits"]:
-                    commit = (await client.get(commit_data["url"])).json()
-                    commit_message = commit["commit"]["message"].split("\n")
-                    cleaned_commit_message = "\n".join(
-                        line
-                        for line in commit_message
-                        if not line.strip().lower().startswith("co-authored-by:")
-                    )
-                    commit_msg = commit["commit"]["message"] = cleaned_commit_message
-
-                    if (
-                        "Merge remote-tracking branch" not in commit_msg
-                        and "Merge branch" not in commit_msg
-                    ):
-                        contributors_activity[contributor_username][
-                            "merged_commits"
-                        ].append(commit)
-
-    return contributors_activity
+@task(
+    task_run_name="Fetch GitHub Activity for {owner}/{repo}",
+    cache_key_fn=task_input_hash,
+    cache_expiration=timedelta(days=1),
+)
+async def get_repo_activity_data(
+    owner: str,
+    repo: str,
+    gh_token_secret_name: str,
+    since: datetime,
+):
+    """Get the activity data for a given repository."""
+    return await fetch_contributor_data(
+        token=(await Secret.load(gh_token_secret_name)).get(),
+        owner=owner,
+        repo=repo,
+        since=since,
+    )
 
 
 @flow(name="Daily GitHub Digest", flow_run_name="Digest {owner}/{repo}")
@@ -157,10 +112,12 @@ async def daily_github_digest(
         contributors_activity=data,
     )
 
-    tldr = summarize_digest(markdown_digest)
+    tldr = summarize_digest.with_options(
+        task_run_name=f"Creating story from digest of {owner}/{repo}"
+    )(markdown_digest)
 
     await create_markdown_artifact(
-        key="github-digest",
+        key=f"{repo}-github-digest",
         markdown=markdown_digest,
         description=tldr,
     )
