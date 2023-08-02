@@ -33,5 +33,6 @@ deployments:
     job_variables:
       env:
         MARVIN_OPENAI_API_KEY: "{{ prefect.blocks.secrets.openai-api-key }}"
+        MARVIN_SLACK_API_TOKEN: "{{ prefect.blocks.secrets.slack-api-token }}"
         PREFECT_LOGGING_EXTRA_LOGGERS: "marvin"
         PREFECT_LOGGING_LEVEL: "DEBUG"

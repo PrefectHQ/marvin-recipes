@@ -4,7 +4,6 @@ from copy import deepcopy
 from typing import Callable, Dict, List, Union
 
 import httpx
-import marvin
 import marvin_recipes
 from cachetools import TTLCache
 from fastapi import HTTPException
@@ -18,8 +17,8 @@ from marvin.tools.web import DuckDuckGoSearch, VisitUrl
 from marvin.utilities.history import History
 from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message
-from marvin.utilities.strings import convert_md_links_to_slack
 from marvin_recipes.tools.chroma import MultiQueryChroma
+from marvin_recipes.utilities.slack import get_thread_messages, post_slack_message
 from serpapi import GoogleSearch
 
 DEFAULT_NAME = "Marvin"
@@ -38,28 +37,6 @@ PREFECT_KNOWLEDGEBASE_DESC = """
     This tool is best used by passing multiple short queries, such as:
     ["k8s worker", "work pools", "deployments"]
 """
-
-
-async def _post_slack_message(
-    message: str, channel: str, thread_ts: str = None
-) -> httpx.Response:
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://slack.com/api/chat.postMessage",
-            headers={
-                "Authorization": (
-                    f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"
-                )
-            },
-            json={
-                "channel": channel,
-                "text": convert_md_links_to_slack(message),
-                "thread_ts": thread_ts,
-            },
-        )
-
-    response.raise_for_status()
-    return response
 
 
 def _clean(text: str) -> str:
@@ -102,22 +79,6 @@ class Chatbot(AIApplication):
             additional_prompts=additional_prompts or [],
             **kwargs,
         )
-
-
-async def get_thread_messages(channel: str, thread_ts: str) -> List[Dict]:
-    """Get all messages from a slack thread."""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://slack.com/api/conversations.replies",
-            headers={
-                "Authorization": (
-                    f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"
-                )
-            },
-            params={"channel": channel, "ts": thread_ts},
-        )
-    response.raise_for_status()
-    return response.json().get("messages", [])
 
 
 class SlackThreadToDiscoursePost(Tool):
@@ -231,7 +192,7 @@ async def generate_ai_response(payload: Dict) -> Message:
 
         message_content = _clean(ai_message.content)
 
-        await _post_slack_message(
+        await post_slack_message(
             message=message_content,
             channel=event.get("channel", ""),
             thread_ts=thread,

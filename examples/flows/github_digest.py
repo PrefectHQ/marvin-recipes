@@ -3,7 +3,10 @@ from datetime import date, datetime, timedelta
 
 from marvin import ai_fn
 from marvin.utilities.strings import jinja_env
-from marvin_recipes.utilities.slack import fetch_contributor_data
+from marvin_recipes.utilities.slack import (
+    fetch_contributor_data,
+    post_slack_message,
+)
 from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
 from prefect.blocks.system import Secret
@@ -58,7 +61,9 @@ def summarize_digest(markdown_digest: str):
     details in the digest to create a compelling and engaging tale of the day's events.
     A dry pun or 2 are encouraged.
 
-    Usernames should be bolded markdown links to the contributor's GitHub profile.
+    Usernames should be markdown links to the contributor's GitHub profile.
+
+    The story should begin with a short pithy welcome to the reader.
     """  # noqa: E501
 
 
@@ -86,6 +91,7 @@ async def get_repo_activity_data(
 async def daily_github_digest(
     owner: str = "PrefectHQ",
     repo: str = "prefect",
+    slack_channel: str = "testing-slackbots",
     gh_token_secret_name: str = "github-token",
 ):
     """A flow that creates a daily digest of GitHub activity for a
@@ -94,6 +100,7 @@ async def daily_github_digest(
     Args:
         owner: The owner of the repository.
         repo: The name of the repository.
+        slack_channel: The name of the Slack channel to post the digest to.
         gh_token_secret_name: Secret Block containing the GitHub token.
     """
     since = datetime.utcnow() - timedelta(days=1)
@@ -122,8 +129,13 @@ async def daily_github_digest(
         description=tldr,
     )
 
+    await post_slack_message(
+        message=f"{tldr}\n\nFull Digest:\n\n{markdown_digest}",
+        channel=slack_channel,
+    )
+
 
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(daily_github_digest())
+    asyncio.run(daily_github_digest(owner="PrefectHQ", repo="marvin"))
