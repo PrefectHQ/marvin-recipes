@@ -56,29 +56,6 @@ class KnowledgeGraph:
         nx.draw(self.graph, labels=labels, with_labels=True, node_size=node_sizes)
         plt.show()
 
-    def filter_nodes(self, key: str = "embedding") -> List[tuple[str, Document]]:
-        """Helper function to filter out nodes without valid data or embeddings."""
-        return [
-            (node, data["data"])
-            for node, data in self.graph.nodes(data=True)
-            if data.get("data") and getattr(data["data"], key, None) is not None
-        ]
-
-    def add_edges_from_similarity(self, valid_nodes, threshold):
-        """Helper function to add edges between nodes based on similarity."""
-        for i in range(len(valid_nodes)):
-            for j in range(i + 1, len(valid_nodes)):
-                similarity = cosine_similarity(
-                    valid_nodes[i][1].embedding, valid_nodes[j][1].embedding
-                )
-                if similarity > threshold:
-                    self.graph.add_edge(
-                        valid_nodes[i][0],
-                        valid_nodes[j][0],
-                        weight=similarity,
-                        is_query=False,
-                    )
-
     async def update_graph_with_chroma(
         self,
         query_texts: Optional[List[str]] = None,
@@ -92,29 +69,70 @@ class KnowledgeGraph:
                 n_results=n_results,
                 include=["distances", "documents", "metadatas", "embeddings"],
             )
-            if not all(
-                results.get(i)
-                for i in ["ids", "distances", "documents", "metadatas", "embeddings"]
-            ):
-                return
 
-            for query, (doc_id, distance, document, metadata, embedding) in zip(
-                query_texts, zip(*results.values())
+            # Check if the query returned any results
+            if all(
+                results[i] is not None
+                for i in ["ids", "distances", "documents", "metadatas"]
             ):
-                print(f"{document=}")
-                if doc_id not in self.graph:
-                    doc = Document(
-                        id=doc_id, text=document, metadata=metadata, embedding=embedding
+                # Iterate over each list of results corresponding to each query
+                for query, ids, distances, documents, metadatas, embeddings in zip(
+                    query_texts,
+                    results["ids"],
+                    results["distances"],
+                    results["documents"],
+                    results["metadatas"],
+                    results["embeddings"],
+                ):
+                    # Update the graph with new nodes and edges
+                    for doc_id, distance, document, metadata, embedding in zip(
+                        ids, distances, documents, metadatas, embeddings
+                    ):
+                        # Create new Document object if necessary
+                        if doc_id not in self.graph:
+                            doc = Document(
+                                id=doc_id,
+                                text=document,
+                                metadata=metadata,
+                                embedding=embedding,
+                            )
+                            self.graph.add_node(doc.hash, data=doc, is_query=False)
+
+                        # Add an edge from the query to the result document in the graph
+                        self.graph.add_edge(
+                            query, doc_id, weight=1 - distance, is_query=True
+                        )
+
+                # Filter out nodes without valid data or embeddings
+                valid_nodes = [
+                    (node, data["data"])
+                    for node, data in self.graph.nodes(data=True)
+                    if (
+                        data.get("data")
+                        and hasattr(data["data"], "embedding")
+                        and data["data"].embedding is not None
                     )
-                    self.graph.add_node(doc.hash, data=doc, is_query=False)
-                self.graph.add_edge(query, doc_id, weight=1 - distance, is_query=True)
+                ]
 
-                valid_nodes = self.filter_nodes()
-                self.add_edges_from_similarity(valid_nodes, threshold)
+                # Iterate over all pairs of valid nodes in the graph
+                for i in range(len(valid_nodes)):
+                    for j in range(i + 1, len(valid_nodes)):
+                        similarity = cosine_similarity(
+                            valid_nodes[i][1].embedding, valid_nodes[j][1].embedding
+                        )
+                        print(f"{similarity=:.3f} {threshold=:.3f}")
+                        if similarity > threshold:
+                            self.graph.add_edge(
+                                valid_nodes[i][0],
+                                valid_nodes[j][0],
+                                weight=similarity,
+                                is_query=False,
+                            )
 
     async def update_knowledge_graph_from_messages(
         self,
         messages: List[Message],
+        threshold: float = 0.5,
     ):
         self.add_documents(
             documents=[Document(text=message.content) for message in messages]
@@ -122,7 +140,7 @@ class KnowledgeGraph:
 
         await self.update_graph_with_chroma(
             query_texts=[message.content for message in messages],
-            threshold=0.88,
+            threshold=threshold,
         )
 
 
@@ -133,7 +151,7 @@ if __name__ == "__main__":
 
         contents = [
             "blocks",
-            "flow",
+            "flows",
             # "deployment",
             # "task",
             # "concurrency",
@@ -146,7 +164,8 @@ if __name__ == "__main__":
 
         print("Adding messages: " + ", ".join(query_texts))
         await knowledge_graph.update_knowledge_graph_from_messages(
-            [Message(content=query_text, role="user") for query_text in query_texts]
+            [Message(content=query_text, role="user") for query_text in query_texts],
+            threshold=0.88,
         )
         knowledge_graph.draw()
 

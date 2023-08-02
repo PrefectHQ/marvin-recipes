@@ -23,3 +23,10 @@ deployments:
         MARVIN_CHROMA_SERVER_HOST: "{{ $MARVIN_CHROMA_SERVER_HOST }}"
         MARVIN_CHROMA_SERVER_HTTP_PORT: "{{ $MARVIN_CHROMA_SERVER_HTTP_PORT }}"
         MARVIN_OPENAI_API_KEY: "{{ $MARVIN_OPENAI_API_KEY }}"
+- name: prefect-github-digest
+  entrypoint: examples/flows/prefect_github_digest.py:daily_github_digest
+  work_pool:
+    name: kubernetes-prd-internal-tools
+    job_variables:
+      env:
+        MARVIN_OPENAI_API_KEY: "{{ $MARVIN_OPENAI_API_KEY }}"
