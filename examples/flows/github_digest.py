@@ -10,10 +10,8 @@ from prefect.blocks.system import Secret
 from prefect.tasks import task_input_hash
 
 REPO_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
-    # GitHub Digest: {{ today }}
-    
-    Here's what's been happening in [{{ owner }}/{{ repo }}](https://github.com/{{ owner }}/{{ repo }}) today:
-    
+    # [{{ owner }}/{{ repo }}](https://github.com/{{ owner }}/{{ repo }}) GitHub Event Digest: {{ today }}
+        
     {% for contributor, activities in contributors_activity.items() %}
     {% if activities.created_issues|length > 0 or activities.created_pull_requests|length > 0 or activities.merged_commits|length > 0 %}
     ## {{ contributor }}:
@@ -47,15 +45,15 @@ REPO_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
     instructions="You are a witty and subtle orator. Speak to us of the day's events."
 )
 def summarize_digest(markdown_digest: str):
-    """
-    Given a markdown digest of GitHub activity, create an epic story in markdown.
+    """Given a markdown digest of GitHub activity, create an epic story in markdown.
 
     The story should capture collective efforts of the project.
-    Each contributor plays a role in this story, their actions (issues raised, PRs opened, commits merged)
-    shaping the events of the day.
+    Each contributor plays a role in this story, their actions
+    (issues raised, PRs opened, commits merged) shaping the events of the day.
 
-    The narrative should highlight key contributors and their deeds, drawing upon the details in the digest
-    to create a compelling and engaging tale of the day's events. A dry pun or 2 are encouraged.
+    The narrative should highlight key contributors and their deeds, drawing upon the
+    details in the digest to create a compelling and engaging tale of the day's events.
+    A dry pun or 2 are encouraged.
 
     Usernames should be bolded markdown links to the contributor's GitHub profile.
     """  # noqa: E501
