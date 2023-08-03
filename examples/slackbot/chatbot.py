@@ -19,7 +19,6 @@ from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message
 from marvin_recipes.tools.chroma import MultiQueryChroma
 from marvin_recipes.utilities.slack import get_thread_messages, post_slack_message
-from serpapi import GoogleSearch
 
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A friendly AI assistant"
@@ -109,6 +108,14 @@ class MemeGenerator(Tool):
     """
 
     async def run(self, query: str) -> Dict:
+        try:
+            from serpapi import GoogleSearch
+        except ImportError:
+            raise ImportError(
+                "The serpapi library is required to use the MemeGenerator tool."
+                " Please install it with `pip install 'marvin[serpapi]'`."
+            )
+
         results = GoogleSearch(
             {
                 "q": query,

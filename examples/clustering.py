@@ -22,7 +22,7 @@ def has_link(doc):
     )
 
 
-def _get_link_or_title(doc):
+def _get_link(doc):
     """Extract the link or a default title from the document."""
     if has_link(doc):
         return doc["data"].metadata.link
@@ -43,10 +43,7 @@ class KnowledgeGraph:
     def draw(self, figsize=(8, 6)):
         plt.figure(figsize=figsize)
 
-        labels = {
-            node: _get_link_or_title(doc)[8:]
-            for node, doc in self.graph.nodes(data=True)
-        }
+        labels = {node: _get_link(doc)[8:] for node, doc in self.graph.nodes(data=True)}
 
         node_sizes = [
             (300 if data.get("is_query", False) else 100) * (1 + data.get("weight", 0))

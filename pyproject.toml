@@ -11,7 +11,8 @@ classifiers = [
 keywords = ["ai", "chatbot", "llm"]
 requires-python = ">=3.9"
 dependencies = [
-    "marvin"
+    "marvin>=1.2.1",
+    "xxhash>=3.3.0",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +38,7 @@ all = [
     "marvin-recipes[pdf]",
     "marvin-recipes[prefect]",
     "marvin-recipes[scraping]",
+    "marvin-recipes[serpapi]",
     "marvin-recipes[slackbot]",
 ]
 
