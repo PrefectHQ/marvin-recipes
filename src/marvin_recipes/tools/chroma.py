@@ -84,13 +84,13 @@ class MultiQueryChroma(Tool):
 
         coros = [
             query_chroma(
-                query,
-                collection,
-                n_results,
-                where,
-                where_document,
-                include,
-                max_characters // len(queries),
+                query=query,
+                collection=collection,
+                n_results=n_results,
+                where=where,
+                where_document=where_document,
+                include=include,
+                max_characters=max_characters // len(queries),
                 client_type=self.client_type,
             )
             for query in queries

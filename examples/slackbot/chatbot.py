@@ -13,7 +13,7 @@ from marvin.prompts import Prompt
 from marvin.tools import Tool
 from marvin.tools.github import SearchGitHubIssues
 from marvin.tools.mathematics import WolframCalculator
-from marvin.tools.web import DuckDuckGoSearch, VisitUrl
+from marvin.tools.web import DuckDuckGoSearch
 from marvin.utilities.history import History
 from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message
@@ -151,7 +151,6 @@ def choose_bot(payload: Dict, history: History) -> Chatbot:
         tools=[
             SlackThreadToDiscoursePost(payload=payload),
             MemeGenerator(),
-            VisitUrl(),
             DuckDuckGoSearch(),
             SearchGitHubIssues(),
             MultiQueryChroma(

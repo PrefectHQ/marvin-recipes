@@ -13,7 +13,9 @@ from prefect.blocks.system import Secret
 from prefect.tasks import task_input_hash
 
 REPO_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
-    # [{{ owner }}/{{ repo }}](https://github.com/{{ owner }}/{{ repo }}) GitHub Event Digest: {{ today }}
+    # [{{ owner }}/{{ repo }}](https://github.com/{{ owner }}/{{ repo }})
+
+    ## GitHub Events Digest: {{ today }}
         
     {% for contributor, activities in contributors_activity.items() %}
     {% if activities.created_issues|length > 0 or activities.created_pull_requests|length > 0 or activities.merged_commits|length > 0 %}
@@ -48,7 +50,7 @@ REPO_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
     instructions="You are a witty and subtle orator. Speak to us of the day's events."
 )
 def summarize_digest(markdown_digest: str) -> str:
-    """Given a markdown digest of GitHub activity, create a story that is
+    """Given a markdown digest of GitHub activity, create a Story that is
     informative, entertaining, and epic in proportion to the day's events -
     an empty day should be handled with a short sarcastic quip about humans
     and their laziness.
@@ -63,7 +65,8 @@ def summarize_digest(markdown_digest: str) -> str:
 
     Usernames should be markdown links to the contributor's GitHub profile.
 
-    The story should begin with a short pithy welcome to the reader.
+    The story should begin with a short pithy welcome to the reader and have
+    a very short, summarizing title.
     """  # noqa: E501
 
 
@@ -124,13 +127,11 @@ async def daily_github_digest(
     )(markdown_digest)
 
     await create_markdown_artifact(
-        key=f"{repo}-github-digest",
-        markdown=markdown_digest,
-        description=tldr,
+        key=f"{repo}-github-digest", markdown=markdown_digest, description=tldr
     )
 
     await post_slack_message(
-        message=f"{tldr}\n\nFull Digest:\n\n{markdown_digest}",
+        message=tldr,
         channel=slack_channel,
     )
 
