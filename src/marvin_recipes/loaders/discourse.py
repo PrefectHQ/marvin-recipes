@@ -1,11 +1,9 @@
 import math
-import os
 from datetime import datetime
 from typing import Callable, Dict, Optional
 
 import httpx
 import marvin
-from dotenv import load_dotenv
 from pydantic import (
     BaseModel,
     BaseSettings,
@@ -22,17 +20,11 @@ class DiscourseSettings(BaseSettings):
     class Config:
         env_prefix = "MARVIN_DISCOURSE_"
 
-    api_key: Optional[SecretStr] = None
+    api_key: Optional[SecretStr] = Field(
+        default=None,
+        env=["MARVIN_DISCOURSE_API_KEY", "DISCOURSE_API_KEY"],
+    )
     api_username: str = "marvin"
-
-    @validator("api_key", pre=True)
-    def _load_api_key(
-        cls, v: Optional[str], values: Dict[str, str]
-    ) -> Optional[SecretStr]:
-        if v is None:
-            load_dotenv()
-            v = values["api_key"] = SecretStr(os.environ["MARVIN_DISCOURSE_API_KEY"])
-        return v
 
 
 class DiscoursePost(BaseModel):

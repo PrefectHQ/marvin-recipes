@@ -1,4 +1,3 @@
-import re
 from datetime import timedelta
 
 from marvin_recipes.documents import Document
@@ -6,10 +5,9 @@ from marvin_recipes.loaders.base import Loader
 from marvin_recipes.loaders.discourse import DiscourseLoader
 from marvin_recipes.loaders.github import GitHubRepoLoader
 from marvin_recipes.loaders.openapi import OpenAPISpecLoader
-from marvin_recipes.loaders.web import HTMLLoader, SitemapLoader
+from marvin_recipes.loaders.web import HTMLLoader
 from marvin_recipes.vectorstores.chroma import Chroma
 from prefect import flow, task
-from prefect.filesystems import GCS
 from prefect.tasks import task_input_hash
 from prefect.utilities.annotations import quote
 
@@ -31,21 +29,14 @@ def include_topic_filter(topic) -> bool:
 
 
 prefect_loaders = [
-    SitemapLoader(
-        urls=["https://docs.prefect.io/sitemap.xml"],
-        exclude=["api-ref"],
-    ),
     OpenAPISpecLoader(
         openapi_spec_url="https://api.prefect.cloud/api/openapi.json",
         api_doc_url="https://app.prefect.cloud/api",
     ),
     HTMLLoader(
         urls=[
-            "https://prefect.io/about/company/",
-            "https://prefect.io/security/overview/",
-            "https://prefect.io/security/sub-processors/",
-            "https://prefect.io/security/gdpr-compliance/",
-            "https://prefect.io/security/bug-bounty-program/",
+            "https://prefect.io/company",
+            "https://prefect.io/security",
         ],
     ),
     GitHubRepoLoader(
@@ -68,10 +59,6 @@ prefect_loaders = [
         repo="prefecthq/prefect-recipes",
         include_globs=["flows-advanced/**/*.py", "README.md"],
     ),
-    SitemapLoader(
-        urls=["https://www.prefect.io/sitemap.xml"],
-        include=[re.compile("prefect.io/guide/case-studies/.+")],
-    ),
 ]
 
 
@@ -91,11 +78,12 @@ async def run_loader(loader: Loader) -> list[Document]:
 @flow(
     name="Update Marvin's Knowledge",
     log_prints=True,
-    result_storage=GCS.load("marvin-result-storage"),
+    # result_storage=GCS.load("marvin-result-storage"),
 )
 async def update_marvin_knowledge(
     collection_name: str = "marvin",
     wipe_collection: bool = True,
+    chroma_client_type: str = "base",
 ):
     """Flow updating Marvin's knowledge with info from the Prefect community."""
 
@@ -105,7 +93,7 @@ async def update_marvin_knowledge(
         for doc in await future.result()
     ]
 
-    async with Chroma(collection_name) as chroma:
+    async with Chroma(collection_name, client_type=chroma_client_type) as chroma:
         if wipe_collection:
             await chroma.delete()
         n_docs = await chroma.add(documents)
