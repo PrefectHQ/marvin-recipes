@@ -8,10 +8,13 @@ RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && \
+    apt-get install -y git build-essential && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN pip install ".[slackbot]"
+RUN pip install ".[chroma, prefect, serpapi, slackbot]"
 
 EXPOSE 4200
 
-CMD ["python", "slackbot/start.py"]
+CMD ["python", "examples/slackbot/start.py"]

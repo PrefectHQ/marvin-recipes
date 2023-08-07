@@ -36,7 +36,6 @@ loaders = [
 ]
 pdf = ["pypdf>=3.13.0"]
 prefect = ["prefect>=2.11.3", "gcsfs>=2023.6.0"]
-scraping = []
 serpapi = ["google-search-results>=2.4.2"]
 slackbot = ["cachetools>=5.3.1", "numpy>=1.21.2", "duckduckgo_search>=3.8.3"]
 
@@ -46,7 +45,6 @@ all = [
     "marvin-recipes[loaders]",
     "marvin-recipes[pdf]",
     "marvin-recipes[prefect]",
-    "marvin-recipes[scraping]",
     "marvin-recipes[serpapi]",
     "marvin-recipes[slackbot]",
 ]

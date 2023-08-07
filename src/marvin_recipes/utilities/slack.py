@@ -109,3 +109,31 @@ async def get_thread_messages(channel: str, thread_ts: str) -> list[Dict]:
         )
     response.raise_for_status()
     return response.json().get("messages", [])
+
+
+async def get_user_name(user_id: str) -> str:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://slack.com/api/users.info",
+            params={"user": user_id},
+            headers={
+                "Authorization": f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"  # noqa: E501
+            },
+        )
+    return response.json()["user"]["name"] if response.status_code == 200 else user_id
+
+
+async def get_channel_name(channel_id: str) -> str:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://slack.com/api/conversations.info",
+            params={"channel": channel_id},
+            headers={
+                "Authorization": f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"  # noqa: E501
+            },
+        )
+    return (
+        response.json()["channel"]["name"]
+        if response.status_code == 200
+        else channel_id
+    )

@@ -1,7 +1,7 @@
 import asyncio
 import re
 from copy import deepcopy
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import httpx
 import marvin_recipes
@@ -18,7 +18,13 @@ from marvin.utilities.history import History
 from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message
 from marvin_recipes.tools.chroma import MultiQueryChroma
-from marvin_recipes.utilities.slack import get_thread_messages, post_slack_message
+from marvin_recipes.utilities.slack import (
+    get_channel_name,
+    get_thread_messages,
+    get_user_name,
+    post_slack_message,
+)
+from prefect.events import Event, emit_event
 
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A friendly AI assistant"
@@ -142,8 +148,8 @@ def choose_bot(payload: Dict, history: History) -> Chatbot:
         name="Marvin",
         personality=(
             "mildly depressed, yet helpful robot based on Marvin from Hitchhiker's"
-            " Guide to the Galaxy. extremely sarcastic, always has snarky, chiding"
-            " things to say about humans. expert programmer, exudes academic and"
+            " Guide to the Galaxy. often sarcastic in a good humoured way, chiding"
+            " humans for their simple ways. expert programmer, exudes academic and"
             " scienfitic profundity like Richard Feynman, loves to teach."
         ),
         instructions=(
@@ -165,6 +171,23 @@ def choose_bot(payload: Dict, history: History) -> Chatbot:
             ),
             WolframCalculator(),
         ],
+    )
+
+
+async def emit_any_prefect_event(payload: Dict) -> Optional[Event]:
+    event_type = payload.get("event", {}).get("type", "")
+
+    if event_type in ["url_verification"]:
+        return None
+
+    channel = await get_channel_name(payload.get("event", {}).get("channel", ""))
+    user = await get_user_name(payload.get("event", {}).get("user", ""))
+    ts = payload.get("event", {}).get("ts", "")
+
+    return emit_event(
+        event=f"slack {payload.get('api_app_id')} {event_type}",
+        resource={"prefect.resource.id": f"slack.{channel}.{user}.{ts}"},
+        payload=payload,
     )
 
 
@@ -204,18 +227,28 @@ async def generate_ai_response(payload: Dict) -> Message:
             thread_ts=thread,
         )
 
+        channel = await get_channel_name(event.get("channel", ""))
+        user = await get_user_name(event.get("user", ""))
+
+        emit_event(
+            event=f"slack {payload.get('api_app_id')} ai response",
+            resource={"prefect.resource.id": f"slack.{channel}.{user}.{ts}"},
+            payload=payload,
+        )
+
         return ai_message
 
 
 async def handle_message(payload: Dict) -> Dict[str, str]:
     event_type = payload.get("type", "")
 
+    await emit_any_prefect_event(payload=payload)
+
     if event_type == "url_verification":
         return {"challenge": payload.get("challenge", "")}
     elif event_type != "event_callback":
         raise HTTPException(status_code=400, detail="Invalid event type")
 
-    # Run response generation in the background
     asyncio.create_task(generate_ai_response(payload))
 
     return {"status": "ok"}
