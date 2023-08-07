@@ -42,7 +42,7 @@ mkdir chroma
 cp db/chroma.sqlite3 chroma/
 ```
 
-[**optional**] creating a Chroma client will initialize a local index you can query
+[**optional**] creating a `Chroma` instance will initialize a local index you can query
 ```python
 # ipython gives you an event loop 🙂
 from marvin_recipes.vectorstores.chroma import Chroma
