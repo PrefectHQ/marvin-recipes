@@ -2,6 +2,7 @@ import inspect
 from datetime import date, datetime, timedelta
 
 from marvin import ai_fn
+from marvin import settings as marvin_settings
 from marvin.utilities.strings import jinja_env
 from marvin_recipes.utilities.slack import (
     fetch_contributor_data,
@@ -139,4 +140,5 @@ async def daily_github_digest(
 if __name__ == "__main__":
     import asyncio
 
+    marvin_settings.llm_max_tokens = 7000
     asyncio.run(daily_github_digest(owner="PrefectHQ", repo="marvin"))
