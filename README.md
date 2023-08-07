@@ -31,7 +31,12 @@ install some extras
 pip install ".[chroma, loaders, prefect]"
 ```
 
-put the sample db where the chroma client expects it
+you can now load documents into the vectorstore
+```bash
+python examples/flows/refresh_vectorstore.py
+```
+
+or instead just put a sample db in the `chroma` directory
 ```bash
 mkdir chroma
 cp db/chroma.sqlite3 chroma/
