@@ -18,8 +18,9 @@ cd marvin-recipes
 
 start a virtual environment and install deps
 ```bash
-conda create -n marvin-recipes python=3.11 -y
-conda activate marvin-recipes
+# mamba, conda, etc - whatever you like
+mamba create -n marvin-recipes python=3.11 -y
+mamba activate marvin-recipes
 pip install .
 ```
 
