@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 
 import chromadb
@@ -111,16 +112,13 @@ class Chroma(AsyncVectorstore):
             metadatas=[document.metadata.dict() for document in documents],
         )
 
-    def ok(self):
+    def ok(self) -> bool:
+        logger = marvin.utilities.logging.get_logger()
         try:
-            response = self.client.get_version()
+            version = self.client.get_version()
         except Exception as e:
-            marvin.utilities.logging.get_logger().error(
-                f"Cannot connect to Chroma: {e}"
-            )
-        if response:
-            marvin.utilities.logging.get_logger().debug(
-                f"Connected to Chroma v{response}"
-            )
+            logger.error(f"Cannot connect to Chroma: {e}")
+        if re.match(r"^\d+\.\d+\.\d+$", version):
+            logger.debug(f"Connected to Chroma v{version}")
             return True
         return False
