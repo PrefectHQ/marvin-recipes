@@ -64,8 +64,9 @@ print(await QueryChroma().run("what are prefect blocks?"))
 from marvin import AIApplication
 
 knowledge_bot = AIApplication(
-    name="knowledge_bot",
-    tools=[QueryChroma(description="Finds answers about Prefect")],
+    name="knowledge bot",
+    description="A knowledge bot that can answer questions about Prefect",
+    tools=[QueryChroma(description="Find documents about Prefect")],
 )
 
 knowledge_bot("what are prefect blocks?")
