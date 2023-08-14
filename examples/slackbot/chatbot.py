@@ -240,14 +240,16 @@ async def generate_ai_response(payload: Dict) -> Message:
 
 
 async def handle_message(payload: Dict) -> Dict[str, str]:
-    event_type = payload.get("type", "")
+    print(f"got {payload=}")
 
-    await emit_any_prefect_event(payload=payload)
+    event_type = payload.get("type", "")
 
     if event_type == "url_verification":
         return {"challenge": payload.get("challenge", "")}
     elif event_type != "event_callback":
         raise HTTPException(status_code=400, detail="Invalid event type")
+
+    await emit_any_prefect_event(payload=payload)
 
     asyncio.create_task(generate_ai_response(payload))
 

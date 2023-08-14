@@ -95,7 +95,7 @@ async def get_repo_activity_data(
 async def daily_github_digest(
     owner: str = "PrefectHQ",
     repo: str = "prefect",
-    slack_channel: str = "testing-slackbots",
+    slack_channel: str = "ask-marvin-tests",
     gh_token_secret_name: str = "github-token",
 ):
     """A flow that creates a daily digest of GitHub activity for a

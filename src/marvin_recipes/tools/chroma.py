@@ -12,7 +12,7 @@ QueryResultType = Literal["documents", "distances", "metadatas"]
 async def query_chroma(
     query: str,
     collection: str = "marvin",
-    n_results: int = 5,
+    n_results: int = 3,
     where: Optional[dict] = None,
     where_document: Optional[dict] = None,
     include: Optional[list[QueryResultType]] = None,
@@ -47,7 +47,7 @@ class QueryChroma(Tool):
         self,
         query: str,
         collection: str = "marvin",
-        n_results: int = 5,
+        n_results: int = 3,
         where: Optional[dict] = None,
         where_document: Optional[dict] = None,
         include: Optional[list[QueryResultType]] = None,
@@ -71,12 +71,12 @@ class MultiQueryChroma(Tool):
         self,
         queries: list[str],
         collection: str = "marvin",
-        n_results: int = 5,
+        n_results: int = 3,
         where: Optional[dict] = None,
         where_document: Optional[dict] = None,
         include: Optional[list[QueryResultType]] = None,
         max_characters: int = 2000,
-        max_queries: int = 5,
+        max_queries: int = 3,
     ) -> str:
         if len(queries) > max_queries:
             # make sure excerpts are not too short

@@ -18,6 +18,7 @@ from marvin_recipes.loaders.base import Loader
 
 class DiscourseSettings(BaseSettings):
     class Config:
+        env_file = ".env"
         env_prefix = "MARVIN_DISCOURSE_"
 
     api_key: Optional[SecretStr] = Field(

@@ -80,7 +80,7 @@ EXCERPT_TEMPLATE = jinja_env.from_string(
 async def document_to_excerpts(
     document: "Document",
     excerpt_template: Template = None,
-    chunk_tokens: int = 200,
+    chunk_tokens: int = 300,
     overlap: confloat(ge=0, le=1) = 0.1,
     **extra_template_kwargs,
 ) -> list["Document"]:

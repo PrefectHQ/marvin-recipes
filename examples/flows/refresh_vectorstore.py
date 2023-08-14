@@ -5,9 +5,10 @@ from marvin_recipes.loaders.base import Loader
 from marvin_recipes.loaders.discourse import DiscourseLoader
 from marvin_recipes.loaders.github import GitHubRepoLoader
 from marvin_recipes.loaders.openapi import OpenAPISpecLoader
-from marvin_recipes.loaders.web import HTMLLoader
+from marvin_recipes.loaders.web import HTMLLoader, SitemapLoader
 from marvin_recipes.vectorstores.chroma import Chroma
 from prefect import flow, task
+from prefect.filesystems import GCS
 from prefect.tasks import task_input_hash
 from prefect.utilities.annotations import quote
 
@@ -29,6 +30,10 @@ def include_topic_filter(topic) -> bool:
 
 
 prefect_loaders = [
+    SitemapLoader(
+        urls=["https://docs.prefect.io/sitemap.xml"],
+        exclude=["api-ref"],
+    ),
     OpenAPISpecLoader(
         openapi_spec_url="https://api.prefect.cloud/api/openapi.json",
         api_doc_url="https://app.prefect.cloud/api",
@@ -57,7 +62,11 @@ prefect_loaders = [
     ),
     GitHubRepoLoader(
         repo="prefecthq/prefect-recipes",
-        include_globs=["flows-advanced/**/*.py", "README.md"],
+        include_globs=[
+            "flows-advanced/**/*.py",
+            "README.md",
+            "flows-starter/*.py",
+        ],
     ),
 ]
 
@@ -78,7 +87,7 @@ async def run_loader(loader: Loader) -> list[Document]:
 @flow(
     name="Update Marvin's Knowledge",
     log_prints=True,
-    # result_storage=GCS.load("marvin-result-storage"),
+    result_storage=GCS.load("marvin-result-storage"),
 )
 async def update_marvin_knowledge(
     collection_name: str = "marvin",
@@ -93,10 +102,12 @@ async def update_marvin_knowledge(
         for doc in await future.result()
     ]
 
-    async with Chroma(collection_name, client_type=chroma_client_type) as chroma:
+    async with Chroma(
+        collection_name=collection_name, client_type=chroma_client_type
+    ) as collection:
         if wipe_collection:
-            await chroma.delete()
-        n_docs = await chroma.add(documents)
+            await collection.delete()
+        n_docs = await collection.add(documents)
 
         print(f"Added {n_docs} documents to the {collection_name} collection.")
 
@@ -104,4 +115,8 @@ async def update_marvin_knowledge(
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(update_marvin_knowledge("marvin", wipe_collection=True))
+    asyncio.run(
+        update_marvin_knowledge(
+            "marvin", wipe_collection=True, chroma_client_type="base"
+        )
+    )
