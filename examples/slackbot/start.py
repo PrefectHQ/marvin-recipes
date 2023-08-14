@@ -9,7 +9,6 @@ deployment = Deployment(
         "description": "A Slackbot powered by Marvin",
     },
     uvicorn_kwargs={
-        "host": "0.0.0.0",
         "port": 4200,
     },
 )
