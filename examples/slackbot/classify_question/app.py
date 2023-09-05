@@ -1,5 +1,6 @@
+from api import read_metrics, update_metrics
 from classify import PrefectConcepts
-from db import init_db, read_metrics, update_metrics
+from db import init_db
 from fastapi import FastAPI
 from models import MetricRecord
 
@@ -8,7 +9,7 @@ app = FastAPI()
 
 @app.get("/metrics/")
 async def read_all_metrics() -> list[MetricRecord]:
-    return [MetricRecord(**record) for record in await read_metrics()]
+    return await read_metrics()
 
 
 @app.post("/queries/")
@@ -25,4 +26,4 @@ async def startup_event():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app)
+    uvicorn.run("app:app", reload=True)
