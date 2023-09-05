@@ -47,7 +47,7 @@ class KnowledgeGraph:
 
         node_sizes = [
             (300 if data.get("is_query", False) else 100) * (1 + data.get("weight", 0))
-            for node, data in self.graph.nodes(data=True)
+            for _, data in self.graph.nodes(data=True)
         ]
 
         nx.draw(self.graph, labels=labels, with_labels=True, node_size=node_sizes)

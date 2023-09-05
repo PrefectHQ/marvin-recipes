@@ -25,6 +25,7 @@ from marvin_recipes.utilities.slack import (
     post_slack_message,
 )
 from prefect.events import Event, emit_event
+from pydantic import Field
 
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A friendly AI assistant"
@@ -52,7 +53,7 @@ class Chatbot(AIApplication):
     name: str = DEFAULT_NAME
     personality: str = DEFAULT_PERSONALITY
     instructions: str = DEFAULT_INSTRUCTIONS
-    tools: List[Union[Tool, Callable]] = ([],)
+    tools: List[Union[Tool, Callable]] = Field(default_factory=list)
 
     def __init__(
         self,
@@ -215,9 +216,8 @@ async def generate_ai_response(payload: Dict) -> Message:
 
         ai_message = await bot.run(input_text=message)
 
-        CACHE[thread] = deepcopy(
-            bot.history
-        )  # make a copy so we don't cache a reference to the history object
+        # make a copy so we don't cache a reference to the history object
+        CACHE[thread] = deepcopy(bot.history)
 
         message_content = _clean(ai_message.content)
 
