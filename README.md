@@ -74,22 +74,41 @@ knowledge_bot("what are prefect blocks?")
 
 ### add your own tools for any type of retrieval augmented generation
 ```python
-def get_weather():
-    return "it's sunny"
+from marvin import ai_fn, AIApplication
 
 def get_my_ip_address():
     import httpx
     return httpx.get("https://ip.me").text
 
-from marvin import AIApplication
+def get_prime_factors(n: int) -> list[int]:
+    """Get prime factors of n"""
+    i = 2
+    factors = []
+    while i * i <= n:
+        if n % i:
+            i += 1
+        else:
+            n //= i
+            factors.append(i)
+    if n > 1:
+        factors.append(n)
+    return factors
+
+@ai_fn(model="gpt-3.5-turbo")
+def write_a_terrible_pun(topic: str) -> str:
+    """Write a terrible pun about a topic.
+    
+    It should be so bad that it makes me want to cry.
+    """
 
 knowledge_bot = AIApplication(
     name="knowledge bot",
     description="A knowledge bot that can answer questions about Prefect",
     tools=[
         QueryChroma(description="Find documents about <whatever you've got in your vectorstore>"),
-        get_weather,
         get_my_ip_address,
+        get_prime_factors,
+        write_a_terrible_pun,
     ],
 )
 ```
