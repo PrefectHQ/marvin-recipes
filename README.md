@@ -76,7 +76,7 @@ knowledge_bot("what are prefect blocks?")
 ```python
 from marvin import ai_fn, AIApplication
 
-def get_my_ip_address():
+def get_ip_address():
     import httpx
     return httpx.get("https://ip.me").text
 
@@ -106,7 +106,7 @@ knowledge_bot = AIApplication(
     description="A knowledge bot that can answer questions about Prefect",
     tools=[
         QueryChroma(description="Find documents about <whatever you've got in your vectorstore>"),
-        get_my_ip_address,
+        get_ip_address,
         get_prime_factors,
         write_a_terrible_pun,
     ],
