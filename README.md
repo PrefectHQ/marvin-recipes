@@ -72,6 +72,28 @@ knowledge_bot = AIApplication(
 knowledge_bot("what are prefect blocks?")
 ```
 
+### add your own tools for any type of retrieval augmented generation
+```python
+def get_weather():
+    return "it's sunny"
+
+def get_my_ip_address():
+    import httpx
+    return httpx.get("https://ip.me").text
+
+from marvin import AIApplication
+
+knowledge_bot = AIApplication(
+    name="knowledge bot",
+    description="A knowledge bot that can answer questions about Prefect",
+    tools=[
+        QueryChroma(description="Find documents about <whatever you've got in your vectorstore>"),
+        get_weather,
+        get_my_ip_address,
+    ],
+)
+```
+
 ## optionally add some env vars to increase rate limits
 ```bash
 MARVIN_GITHUB_TOKEN=your_github_token
