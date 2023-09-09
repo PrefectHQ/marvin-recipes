@@ -55,9 +55,9 @@ async with Chroma() as chroma:
 ### use the vectorstore
 use the `QueryChroma` tool directly or give it to an `AIApplication` to use
 ```python
-from marvin_recipes.tools.chroma import QueryChroma
+from marvin_recipes.tools.chroma import MultiQueryChroma
 
-print(await QueryChroma().run("what are prefect blocks?"))
+print(await MultiQueryChroma().run("what are prefect blocks and flows and tasks?"))
 
 # or
 
@@ -66,7 +66,7 @@ from marvin import AIApplication
 knowledge_bot = AIApplication(
     name="knowledge bot",
     description="A knowledge bot that can answer questions about Prefect",
-    tools=[QueryChroma(description="Find documents about Prefect")],
+    tools=[MultiQueryChroma(description="Find documents about Prefect")],
 )
 
 knowledge_bot("what are prefect blocks?")
@@ -75,6 +75,7 @@ knowledge_bot("what are prefect blocks?")
 ### add your own tools for any type of retrieval augmented generation
 ```python
 from marvin import ai_fn, AIApplication
+from marvin_recipes.tools.chroma import MultiQueryChroma
 
 def get_ip_address():
     import httpx
@@ -103,9 +104,9 @@ def write_a_terrible_pun(topic: str) -> str:
 
 knowledge_bot = AIApplication(
     name="knowledge bot",
-    description="A knowledge bot that can answer questions about Prefect",
+    description="A knowledge bot that can answer questions about <what you care about>",
     tools=[
-        QueryChroma(description="Find documents about <whatever you've got in your vectorstore>"),
+        MultiQueryChroma(description="Use to find context about <whatever you've got in your vectorstore>"),
         get_ip_address,
         get_prime_factors,
         write_a_terrible_pun,
