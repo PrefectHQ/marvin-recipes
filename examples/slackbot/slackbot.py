@@ -46,6 +46,7 @@ PREFECT_KNOWLEDGEBASE_DESC = """
 
 
 def _clean(text: str) -> str:
+    """this can be whatever you want it to be"""
     return text.replace("```python", "```")
 
 
@@ -105,46 +106,52 @@ class SlackThreadToDiscoursePost(Tool):
         return discourse_post
 
 
-class MemeGenerator(Tool):
-    description: str = """
-        For generating a meme when the time is right.
-        
-        Provide the name of a well-known meme as the query
-        based on the context of the message history, followed
-        by the word "meme".
+async def meme_generator(query: str) -> dict[str, str]:
+    """For generating a meme when the time is right.
+
+    Query Google search to find a well-known meme
+    based on the context of the message history. Queries
+    should finish with "meme".
+
+    For example, if the user says "I feel like everything is
+    going crazy", you might respond with "this is fine meme".
     """
+    try:
+        from serpapi import GoogleSearch
+    except ImportError:
+        raise ImportError(
+            "The serpapi library is required to use the `meme_generator` function."
+            " Please install it with `pip install 'marvin[serpapi]'`."
+        )
 
-    async def run(self, query: str) -> Dict:
-        try:
-            from serpapi import GoogleSearch
-        except ImportError:
-            raise ImportError(
-                "The serpapi library is required to use the MemeGenerator tool."
-                " Please install it with `pip install 'marvin[serpapi]'`."
-            )
+    results = GoogleSearch(
+        {
+            "q": query,
+            "tbm": "isch",
+            "api_key": marvin_recipes.settings.google_api_key.get_secret_value(),
+        }
+    ).get_dict()
 
-        results = GoogleSearch(
-            {
-                "q": query,
-                "tbm": "isch",
-                "api_key": marvin_recipes.settings.google_api_key.get_secret_value(),
-            }
-        ).get_dict()
+    if "error" in results:
+        raise RuntimeError(results["error"])
 
-        if "error" in results:
-            raise RuntimeError(results["error"])
+    url = results.get("images_results", [{}])[0].get("original")
 
-        url = results.get("images_results", [{}])[0].get("original")
+    async with httpx.AsyncClient() as client:
+        response = await client.head(url)
+        response.raise_for_status()
 
-        async with httpx.AsyncClient() as client:
-            response = await client.head(url)
-            response.raise_for_status()
-
-        return {"title": query, "image_url": url}
+    return {"title": query, "image_url": url}
 
 
-def choose_bot(payload: Dict, history: History) -> Chatbot:
-    # an ai_classifer could be used here maybe?
+def the_answer_to_life_the_universe_and_everything() -> str:
+    """Only to be used facetiously when the user seems to be
+    referencing the Hitchhiker's Guide to the Galaxy.
+    """
+    return 42
+
+
+def _choose_bot(payload: Dict, history: History) -> Chatbot:
     return Chatbot(
         name="Marvin",
         personality=(
@@ -163,14 +170,15 @@ def choose_bot(payload: Dict, history: History) -> Chatbot:
         ),
         history=history,
         tools=[
-            SlackThreadToDiscoursePost(payload=payload),
-            MemeGenerator(),
-            DuckDuckGoSearch(),
-            SearchGitHubIssues(),
             MultiQueryChroma(
                 description=PREFECT_KNOWLEDGEBASE_DESC, client_type="http"
             ),
+            DuckDuckGoSearch(),
             WolframCalculator(),
+            SearchGitHubIssues(),
+            SlackThreadToDiscoursePost(payload=payload),
+            meme_generator,
+            the_answer_to_life_the_universe_and_everything,
         ],
     )
 
@@ -212,7 +220,7 @@ async def generate_ai_response(payload: Dict) -> Message:
         message = re.sub(SLACK_MENTION_REGEX, "", message).strip()
         history = CACHE.get(thread, History())
 
-        bot = choose_bot(payload=payload, history=history)
+        bot = _choose_bot(payload=payload, history=history)
 
         ai_message = await bot.run(input_text=message)
 

@@ -1,3 +1,7 @@
+# You can run this as a service someplace like Cloud Run, or just run it locally
+# with ngrok while testing (e.g. `ngrok http 4200`, set your slack event subscription to
+# the ngrok url + your endpoint).
+
 FROM python:3.11-slim
 
 WORKDIR /app
