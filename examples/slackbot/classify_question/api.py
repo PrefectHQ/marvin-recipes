@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import pydantic
 from db import inject_db, metrics
 from models import MetricRecord
 from sqlalchemy import select
@@ -24,7 +25,4 @@ async def update_metrics(session, concepts: set[str]):
 async def read_metrics(session) -> list[MetricRecord]:
     async with session.begin():
         result = await session.execute(select(metrics))
-        return [
-            MetricRecord(**dict(zip(MetricRecord.__fields__, row)))
-            for row in result.all()
-        ]
+        return pydantic.parse_obj_as(list[MetricRecord], result.all())

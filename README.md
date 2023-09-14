@@ -74,8 +74,11 @@ knowledge_bot("what are prefect blocks?")
 
 ### add your own tools for any type of retrieval augmented generation
 ```python
+import marvin
 from marvin import ai_fn, AIApplication
 from marvin_recipes.tools.chroma import MultiQueryChroma
+
+marvin.settings.log_level = "DEBUG"
 
 def get_ip_address():
     import httpx

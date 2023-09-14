@@ -26,4 +26,13 @@ async def startup_event():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=4200)
+
+"""
+docker build . -f examples/slackbot/classify_question/Dockerfile.metrics -t metrics
+docker run -p 4200:4200 metrics
+
+curl -X 'POST' 'http://localhost:4200/queries/?query_text=howtodeployprefectflow'
+
+curl -X 'GET' 'http://localhost:4200/metrics/'
+"""
