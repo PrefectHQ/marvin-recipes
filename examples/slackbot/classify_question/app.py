@@ -30,9 +30,9 @@ if __name__ == "__main__":
 
 """
 docker build . -f examples/slackbot/classify_question/Dockerfile.metrics -t metrics
-docker run -p 4200:4200 metrics
+docker run --env-file .env -p 4200:4200 metrics
 
+# In another shell:
 curl -X 'POST' 'http://localhost:4200/queries/?query_text=howtodeployprefectflow'
-
 curl -X 'GET' 'http://localhost:4200/metrics/'
 """
