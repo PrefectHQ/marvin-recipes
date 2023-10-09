@@ -1,7 +1,7 @@
 from typing import Any
 
+from marvin._compat import SecretStr
 from marvin.settings import MarvinBaseSettings
-from pydantic import SecretStr
 
 
 class ChromaSettings(MarvinBaseSettings):
