@@ -37,9 +37,9 @@ class Document(MarvinBaseModel):
 
     text: str = Field(..., description="Document text content.")
 
-    # link: str | None = Field(default=None, description="Document link.")
     class Config:
         extra = "allow"
+        arbitrary_types_allowed = True
 
     id: str = Field(default_factory=DocumentID.new)
     parent_document_id: Optional[DocumentID] = Field(default=None)

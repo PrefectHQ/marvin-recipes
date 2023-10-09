@@ -7,7 +7,7 @@ from pydantic import Field, SecretStr
 class ChromaSettings(MarvinBaseSettings):
     """Provider-specific settings. Only some of these will be relevant to users."""
 
-    chroma_db_impl: str = Field(None)
+    chroma_db_impl: str | None = Field(None)
     chroma_server_host: str = Field("localhost")
     chroma_server_http_port: int = Field(8000)
     is_persistent: bool = Field(True)
@@ -19,8 +19,8 @@ class ChromaSettings(MarvinBaseSettings):
 class Settings(MarvinBaseSettings):
     """Marvin integration settings"""
 
-    chroma: ChromaSettings = Field(default_factory=ChromaSettings)
-    google_api_key: SecretStr = Field(None)
+    chroma: ChromaSettings = ChromaSettings()
+    google_api_key: SecretStr | None = None
 
 
 settings = Settings()

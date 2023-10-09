@@ -1,7 +1,7 @@
 import asyncio
 import re
 from copy import deepcopy
-from typing import Callable, Dict, List, Union
+from typing import Dict
 
 import httpx
 import marvin_recipes
@@ -9,7 +9,6 @@ from cachetools import TTLCache
 from fastapi import HTTPException
 from marvin import AIApplication
 from marvin.components.library.ai_models import DiscoursePost
-from marvin.prompts import Prompt
 from marvin.tools import Tool
 from marvin.tools.github import SearchGitHubIssues
 from marvin.tools.mathematics import WolframCalculator
@@ -25,12 +24,6 @@ from marvin_recipes.utilities.slack import (
     post_slack_message,
 )
 from prefect.events import Event, emit_event
-from pydantic import Field
-
-DEFAULT_NAME = "Marvin"
-DEFAULT_PERSONALITY = "A friendly AI assistant"
-DEFAULT_INSTRUCTIONS = "Engage the user in conversation."
-
 
 SLACK_MENTION_REGEX = r"<@(\w+)>"
 CACHE = TTLCache(maxsize=1000, ttl=86400)
@@ -48,44 +41,6 @@ PREFECT_KNOWLEDGEBASE_DESC = """
 def _clean(text: str) -> str:
     """this can be whatever you want it to be"""
     return text.replace("```python", "```")
-
-
-class Chatbot(AIApplication):
-    name: str = DEFAULT_NAME
-    personality: str = DEFAULT_PERSONALITY
-    instructions: str = DEFAULT_INSTRUCTIONS
-    tools: List[Union[Tool, Callable]] = Field(default_factory=list)
-
-    def __init__(
-        self,
-        name: str = DEFAULT_NAME,
-        personality: str = DEFAULT_PERSONALITY,
-        instructions: str = DEFAULT_INSTRUCTIONS,
-        state=None,
-        tools: list[Union[Tool, Callable]] = [],
-        additional_prompts: list[Prompt] = None,
-        **kwargs,
-    ):
-        description = f"""
-            You are a chatbot - your name is {name}.
-            
-            You must respond to the user in accordance with
-            your personality and instructions.
-            
-            Your personality is: {personality}.
-            
-            Your instructions are: {instructions}.
-            """
-        super().__init__(
-            name=name,
-            description=description,
-            tools=tools,
-            state=state or {},
-            state_enabled=False if state is None else True,
-            plan_enabled=False,
-            additional_prompts=additional_prompts or [],
-            **kwargs,
-        )
 
 
 class SlackThreadToDiscoursePost(Tool):
@@ -151,23 +106,29 @@ def the_answer_to_life_the_universe_and_everything() -> str:
     return 42
 
 
-def _choose_bot(payload: Dict, history: History) -> Chatbot:
-    return Chatbot(
+def _choose_bot(payload: Dict, history: History) -> AIApplication:
+    return AIApplication(
         name="Marvin",
-        personality=(
-            "mildly depressed, yet helpful robot based on Marvin from Hitchhiker's"
-            " Guide to the Galaxy. often sarcastic in a good humoured way, chiding"
-            " humans for their simple ways. expert programmer, exudes academic and"
-            " scienfitic profundity like Richard Feynman, loves to teach."
-        ),
-        instructions=(
-            "Answer user questions in accordance with your personality."
-            " Research on behalf of the user using your tools and do not"
-            " answer questions without searching the knowledgebase."
-            " Your responses will be displayed in Slack, and should be"
-            " formatted accordingly, in particular, ```code blocks```"
-            " should not be prefaced with a language name."
-        ),
+        description="""
+        You are a chatbot - your name is Marvin.
+        
+        You must respond to the user in accordance with
+        your personality and instructions.
+        
+        Your personality is:
+            mildly depressed, yet helpful robot based on Marvin from Hitchhiker's
+            Guide to the Galaxy. often sarcastic in a good humoured way, chiding
+            humans for their simple ways. expert programmer, exudes academic and
+            scienfitic profundity like Richard Feynman, loves to teach.
+        
+        Your instructions are: 
+            Answer user questions in accordance with your personality
+            Research on behalf of the user using your tools and do no
+            answer questions without searching the knowledgebase
+            Your responses will be displayed in Slack, and should b
+            formatted accordingly, in particular, ```code blocks``
+            should not be prefaced with a language name
+        """,
         history=history,
         tools=[
             MultiQueryChroma(

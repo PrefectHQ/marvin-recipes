@@ -106,7 +106,7 @@ async def update_marvin_knowledge(
         collection_name=collection_name, client_type=chroma_client_type
     ) as collection:
         if wipe_collection:
-            await collection.delete()
+            await collection.delete(ids=collection.collection.get().get("ids", []))
         n_docs = await collection.add(documents)
 
         print(f"Added {n_docs} documents to the {collection_name} collection.")
@@ -116,7 +116,5 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(
-        update_marvin_knowledge(
-            "marvin", wipe_collection=True, chroma_client_type="base"
-        )
+        update_marvin_knowledge(collection_name="marvin", chroma_client_type="http")
     )
