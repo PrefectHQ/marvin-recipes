@@ -16,7 +16,7 @@ dependencies = [
     "chardet>=5.2.0",
     "ipython>=8.14.0",
     "marvin>=1.4.2",
-    "pydantic<2.0.0",
+    "pydantic",
     "xxhash>=3.3.0",
 ]
 
