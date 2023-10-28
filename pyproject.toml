@@ -15,7 +15,7 @@ dependencies = [
     "cachetools>=5.3.1",
     "chardet>=5.2.0",
     "ipython>=8.14.0",
-    "marvin>=1.4.2",
+    "marvin>=1.5.4",
     "pydantic<2.0.0",
     "xxhash>=3.3.0",
 ]

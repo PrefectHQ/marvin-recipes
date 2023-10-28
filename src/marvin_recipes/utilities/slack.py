@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import httpx
 import marvin
@@ -7,8 +7,16 @@ from marvin.utilities.strings import convert_md_links_to_slack
 
 
 async def fetch_contributor_data(
-    token: str, owner: str, repo: str, since: datetime, max: int = 100
+    token: str,
+    owner: str,
+    repo: str,
+    since: datetime,
+    max: int = 100,
+    excluded_users: Optional[list[str]] = None,
 ) -> Dict[str, Dict[str, Union[str, list]]]:
+    if not excluded_users:
+        excluded_users = {}
+
     events_url = f"https://api.github.com/repos/{owner}/{repo}/events?per_page={max}"
 
     contributors_activity = {}
@@ -22,11 +30,13 @@ async def fetch_contributor_data(
         events = (await client.get(events_url)).json()
 
         for event in events:
+            if (actor := event.get("actor")) and actor["login"] in excluded_users:
+                continue
             created_at = datetime.fromisoformat(event["created_at"].rstrip("Z"))
             if created_at < since:
                 continue
 
-            contributor_username = event["actor"]["login"]
+            contributor_username = actor["login"] if actor else "unknown"
 
             if contributor_username not in contributors_activity:
                 contributors_activity[contributor_username] = {

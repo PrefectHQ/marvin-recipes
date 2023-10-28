@@ -2,7 +2,6 @@ import inspect
 from datetime import date, datetime, timedelta
 
 from marvin import ai_fn
-from marvin import settings as marvin_settings
 from marvin.utilities.strings import jinja_env
 from marvin_recipes.utilities.slack import (
     fetch_contributor_data,
@@ -81,13 +80,19 @@ async def get_repo_activity_data(
     repo: str,
     gh_token_secret_name: str,
     since: datetime,
+    excluded_users=None,
 ):
     """Get the activity data for a given repository."""
+
+    if not excluded_users:
+        excluded_users = {"dependabot[bot]", "dependabot-preview[bot]", "dependabot"}
+
     return await fetch_contributor_data(
         token=(await Secret.load(gh_token_secret_name)).get(),
         owner=owner,
         repo=repo,
         since=since,
+        excluded_users=excluded_users,
     )
 
 
@@ -97,6 +102,7 @@ async def daily_github_digest(
     repo: str = "prefect",
     slack_channel: str = "ask-marvin-tests",
     gh_token_secret_name: str = "github-token",
+    post_story_to_slack: bool = True,
 ):
     """A flow that creates a daily digest of GitHub activity for a
         given repository.
@@ -124,21 +130,27 @@ async def daily_github_digest(
     )
 
     tldr = summarize_digest.with_options(
-        task_run_name=f"Creating story from digest of {owner}/{repo}"
+        task_run_name="Creating story from digest of {owner}/{repo}"
     )(markdown_digest)
 
     await create_markdown_artifact(
         key=f"{repo}-github-digest", markdown=markdown_digest, description=tldr
     )
 
-    await post_slack_message(
-        message=tldr,
-        channel=slack_channel,
-    )
+    if post_story_to_slack:
+        await post_slack_message(
+            message=tldr,
+            channel=slack_channel,
+        )
 
 
 if __name__ == "__main__":
     import asyncio
 
-    marvin_settings.llm_max_tokens = 7000
-    asyncio.run(daily_github_digest(owner="PrefectHQ", repo="marvin"))
+    asyncio.run(
+        daily_github_digest(
+            owner="PrefectHQ",
+            repo="prefect",
+            post_story_to_slack=False,
+        )
+    )
