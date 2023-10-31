@@ -8,8 +8,6 @@ import marvin_recipes
 from cachetools import TTLCache
 from fastapi import HTTPException
 from marvin import AIApplication
-from marvin.components.library.ai_models import DiscoursePost
-from marvin.tools import Tool
 from marvin.tools.github import SearchGitHubIssues
 from marvin.tools.mathematics import WolframCalculator
 from marvin.tools.web import DuckDuckGoSearch
@@ -19,7 +17,6 @@ from marvin.utilities.messages import Message
 from marvin_recipes.tools.chroma import MultiQueryChroma
 from marvin_recipes.utilities.slack import (
     get_channel_name,
-    get_thread_messages,
     get_user_name,
     post_slack_message,
 )
@@ -41,24 +38,6 @@ PREFECT_KNOWLEDGEBASE_DESC = """
 def _clean(text: str) -> str:
     """this can be whatever you want it to be"""
     return text.replace("```python", "```")
-
-
-class SlackThreadToDiscoursePost(Tool):
-    description: str = """
-        Create a new discourse post from a slack thread.
-        
-        The channel is {{ payload['event']['channel'] }}
-        
-        and the thread is {{ payload['event'].get('thread_ts', '') or payload['event']['ts'] }}
-    """  # noqa E501
-
-    payload: Dict
-
-    async def run(self, channel: str, thread_ts: str) -> DiscoursePost:
-        messages = await get_thread_messages(channel=channel, thread_ts=thread_ts)
-        discourse_post = DiscoursePost.from_slack_thread(messages=messages)
-        await discourse_post.publish()
-        return discourse_post
 
 
 async def meme_generator(query: str) -> dict[str, str]:
@@ -137,7 +116,6 @@ def _choose_bot(payload: Dict, history: History) -> AIApplication:
             DuckDuckGoSearch(),
             WolframCalculator(),
             SearchGitHubIssues(),
-            SlackThreadToDiscoursePost(payload=payload),
             meme_generator,
             the_answer_to_life_the_universe_and_everything,
         ],
