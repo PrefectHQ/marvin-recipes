@@ -15,7 +15,7 @@ dependencies = [
     "cachetools>=5.3.1",
     "chardet>=5.2.0",
     "ipython>=8.14.0",
-    "git+https://github.com/PrefectHQ/marvin.git",
+    "marvin @ git+https://github.com/PrefectHQ/marvin.git",
     "pydantic<2.0.0",
     "xxhash>=3.3.0",
 ]
