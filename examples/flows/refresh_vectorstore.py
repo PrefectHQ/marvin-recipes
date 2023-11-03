@@ -104,10 +104,10 @@ async def update_marvin_knowledge(
 
     async with Chroma(
         collection_name=collection_name, client_type=chroma_client_type
-    ) as collection:
+    ) as chroma:
         if wipe_collection:
-            await collection.delete(ids=collection.collection.get().get("ids", []))
-        n_docs = await collection.add(documents)
+            await chroma.reset_collection()
+        n_docs = await chroma.add(documents)
 
         print(f"Added {n_docs} documents to the {collection_name} collection.")
 

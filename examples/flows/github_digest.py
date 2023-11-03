@@ -45,7 +45,7 @@ REPO_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
     """))  # noqa: E501
 
 
-@task(timeout_seconds=90, retries=1)
+@task
 @ai_fn(
     instructions="You are a witty and subtle orator. Speak to us of the day's events."
 )
@@ -130,7 +130,8 @@ async def daily_github_digest(
     )
 
     tldr = summarize_digest.with_options(
-        task_run_name="Creating story from digest of {owner}/{repo}"
+        task_run_name=f"Summarize {owner}/{repo} Digest",
+        retries=3,
     )(markdown_digest)
 
     await create_markdown_artifact(
@@ -151,6 +152,6 @@ if __name__ == "__main__":
         daily_github_digest(
             owner="PrefectHQ",
             repo="prefect",
-            post_story_to_slack=False,
+            # post_story_to_slack=False,
         )
     )

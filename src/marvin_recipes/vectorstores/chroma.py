@@ -112,6 +112,14 @@ class Chroma(AsyncVectorstore):
             metadatas=[document.metadata.dict() for document in documents],
         )
 
+    async def reset_collection(self):
+        await run_async(self.client.delete_collection, self.collection.name)
+        self.collection = await run_async(
+            self.client.create_collection,
+            name=self.collection.name,
+            embedding_function=self.embedding_fn,
+        )
+
     def ok(self) -> bool:
         logger = marvin.utilities.logging.get_logger()
         try:
