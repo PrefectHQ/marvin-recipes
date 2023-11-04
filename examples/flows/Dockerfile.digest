@@ -1,0 +1,6 @@
+FROM prefecthq/prefect:2-python3.11-kubernetes
+
+COPY pyproject.toml .
+
+RUN pip install .
+

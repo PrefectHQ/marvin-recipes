@@ -1,17 +1,18 @@
 name: marvin-recipes
 prefect-version: 2.11.0
 
-build: null
+build:
 
-push: null
+push:
 
 pull: # to run on the worker just before the flow run is executed
 - prefect.deployments.steps.git_clone:
     repository: https://github.com/PrefectHQ/marvin-recipes.git
     branch: main
-    access_token: null
+    access_token:
 - prefect.deployments.steps.run_shell_script:
-    script: pip install 'git+https://github.com/PrefectHQ/marvin-recipes.git@main#egg=marvin_recipes[all]'
+    script: pip install 
+      'git+https://github.com/PrefectHQ/marvin-recipes.git@main#egg=marvin_recipes[all]'
 
 deployments:
 - name: chroma-healthcheck
@@ -20,19 +21,35 @@ deployments:
     name: kubernetes-prd-internal-tools
     job_variables:
       env:
-        MARVIN_OPENAI_API_KEY: "{{ prefect.blocks.secret.openai-api-key }}"
-        MARVIN_CHROMA_SERVER_HOST: "{{ $MARVIN_CHROMA_SERVER_HOST }}"
-        MARVIN_CHROMA_SERVER_HTTP_PORT: "{{ $MARVIN_CHROMA_SERVER_HTTP_PORT }}"
+        MARVIN_OPENAI_API_KEY: '{{ prefect.blocks.secret.openai-api-key }}'
+        MARVIN_CHROMA_SERVER_HOST: '{{ $MARVIN_CHROMA_SERVER_HOST }}'
+        MARVIN_CHROMA_SERVER_HTTP_PORT: '{{ $MARVIN_CHROMA_SERVER_HTTP_PORT }}'
 
 - name: prefect-github-digest
   entrypoint: examples/flows/github_digest.py:daily_github_digest
   work_pool:
     name: kubernetes-prd-internal-tools
-    schedule:
-      cron: "0 20 * * 1-5"
     job_variables:
       env:
-        MARVIN_OPENAI_API_KEY: "{{ prefect.blocks.secret.openai-api-key }}"
-        MARVIN_SLACK_API_TOKEN: "{{ prefect.blocks.secret.slack-api-token }}"
-        PREFECT_LOGGING_EXTRA_LOGGERS: "marvin"
-        PREFECT_LOGGING_LEVEL: "DEBUG"
+        MARVIN_OPENAI_API_KEY: '{{ prefect.blocks.secret.openai-api-key }}'
+        MARVIN_SLACK_API_TOKEN: '{{ prefect.blocks.secret.slack-api-token }}'
+        PREFECT_LOGGING_EXTRA_LOGGERS: marvin
+        PREFECT_LOGGING_LEVEL: DEBUG
+    work_queue_name:
+  schedule:
+    cron: 0 20 * * 1-5
+    timezone: "America/Chicago"
+  tags:
+    - marvin
+    - internal-tools
+  build:
+  - prefect_docker.deployments.steps.build_docker_image:
+      requires: prefect-docker>=0.3.11
+      image_name: zzstoatzz/marvin-recipes-digest
+      tag: latest
+      dockerfile: examples/flows/Dockerfile.digest
+  - prefect_docker.deployments.steps.push_docker_image:
+      id: push-image
+      requires: prefect-docker>=0.3.11
+      image_name: zzstoatzz/marvin-recipes-digest
+      tag: latest

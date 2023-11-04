@@ -3,10 +3,8 @@ from datetime import date, datetime, timedelta
 
 from marvin import ai_fn
 from marvin.utilities.strings import jinja_env
-from marvin_recipes.utilities.slack import (
-    fetch_contributor_data,
-    post_slack_message,
-)
+from marvin_recipes.utilities.github import fetch_contributor_data
+from marvin_recipes.utilities.slack import post_slack_message
 from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
 from prefect.blocks.system import Secret
@@ -102,7 +100,7 @@ async def daily_github_digest(
     repo: str = "prefect",
     slack_channel: str = "ask-marvin-tests",
     gh_token_secret_name: str = "github-token",
-    post_story_to_slack: bool = True,
+    post_story_to_slack: bool = False,
 ):
     """A flow that creates a daily digest of GitHub activity for a
         given repository.
@@ -152,6 +150,5 @@ if __name__ == "__main__":
         daily_github_digest(
             owner="PrefectHQ",
             repo="prefect",
-            # post_story_to_slack=False,
         )
     )
