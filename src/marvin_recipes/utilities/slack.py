@@ -94,7 +94,10 @@ async def fetch_current_message_text(channel: str, ts: str) -> str:
 
 
 async def edit_slack_message(
-    channel: str, ts: str, new_text: str, mode: Literal['append', 'replace'] = 'append'
+    new_text: str,
+    channel_id: str,
+    thread_ts: str,
+    mode: Literal['append', 'replace'] = 'append'
 ) -> httpx.Response:
     """Edit an existing Slack message by appending new text or replacing it.
     
@@ -110,12 +113,9 @@ async def edit_slack_message(
     """
     match mode:
         case 'append':
-            # Fetch the current message text
-            current_text = await fetch_current_message_text(channel, ts)
-            # Append the new text
-            updated_text = f"{current_text}\n{convert_md_links_to_slack(new_text)}"
+            current_text = await fetch_current_message_text(channel_id, thread_ts)
+            updated_text = f"{current_text}\n\n{convert_md_links_to_slack(new_text)}"
         case 'replace':
-            # Use the new text as is for replacement
             updated_text = convert_md_links_to_slack(new_text)
         case _:
             raise ValueError("Invalid mode. Use 'append' or 'replace'.")
@@ -126,7 +126,7 @@ async def edit_slack_message(
             headers={
                 "Authorization": f"Bearer {marvin.settings.slack_api_token.get_secret_value()}" # noqa: E501
             },
-            json={"channel": channel, "ts": ts, "text": updated_text}
+            json={"channel": channel_id, "ts": thread_ts, "text": updated_text}
         )
     
     response.raise_for_status()
@@ -192,3 +192,16 @@ async def search_slack_messages(
                 break
 
     return all_messages[:max_messages]
+
+async def get_workspace_info(slack_bot_token: str | None = None) -> dict:
+
+    if not slack_bot_token:
+        slack_bot_token = marvin.settings.slack_api_token.get_secret_value()
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://slack.com/api/team.info",
+            headers={"Authorization": f"Bearer {slack_bot_token}"}
+        )
+        response.raise_for_status()
+        return response.json().get("team", {})
