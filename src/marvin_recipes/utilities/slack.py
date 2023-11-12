@@ -97,7 +97,8 @@ async def edit_slack_message(
     new_text: str,
     channel_id: str,
     thread_ts: str,
-    mode: Literal['append', 'replace'] = 'append'
+    mode: Literal['append', 'replace'] = 'append',
+    delimiter: str | None = None
 ) -> httpx.Response:
     """Edit an existing Slack message by appending new text or replacing it.
     
@@ -114,7 +115,8 @@ async def edit_slack_message(
     match mode:
         case 'append':
             current_text = await fetch_current_message_text(channel_id, thread_ts)
-            updated_text = f"{current_text}\n\n{convert_md_links_to_slack(new_text)}"
+            delimiter = "\n\n" if delimiter is None else delimiter
+            updated_text = f"{current_text}{delimiter}{convert_md_links_to_slack(new_text)}" # noqa: E501
         case 'replace':
             updated_text = convert_md_links_to_slack(new_text)
         case _:
