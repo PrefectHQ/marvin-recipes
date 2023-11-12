@@ -9,10 +9,6 @@ pull: # to run on the worker just before the flow run is executed
 - prefect.deployments.steps.git_clone:
     repository: https://github.com/PrefectHQ/marvin-recipes.git
     branch: main
-    access_token:
-- prefect.deployments.steps.run_shell_script:
-    script: pip install 
-      'git+https://github.com/PrefectHQ/marvin-recipes.git@main#egg=marvin_recipes[all]'
 
 deployments:
 - name: chroma-healthcheck
@@ -38,18 +34,20 @@ deployments:
     work_queue_name:
   schedule:
     cron: 0 20 * * 1-5
-    timezone: "America/Chicago"
+    timezone: America/Chicago
+    day_or: true
   tags:
-    - marvin
-    - internal-tools
-  build:
-  - prefect_docker.deployments.steps.build_docker_image:
-      requires: prefect-docker>=0.3.11
-      image_name: zzstoatzz/marvin-recipes-digest
-      tag: latest
-      dockerfile: examples/flows/Dockerfile.digest
-  - prefect_docker.deployments.steps.push_docker_image:
-      id: push-image
-      requires: prefect-docker>=0.3.11
-      image_name: zzstoatzz/marvin-recipes-digest
-      tag: latest
+  - marvin
+  - internal-tools
+  version:
+  description: "A flow that creates a daily digest of GitHub activity for a\n    given
+    repository.\n\nArgs:\n    owner: The owner of the repository.\n    repo: The name
+    of the repository.\n    slack_channel: The name of the Slack channel to post the
+    digest to.\n    gh_token_secret_name: Secret Block containing the GitHub token."
+  parameters: {}
+  pull:
+  - prefect.deployments.steps.git_clone:
+      repository: https://github.com/PrefectHQ/marvin-recipes.git
+      branch: main
+  - prefect.deployments.steps.run_shell_script:
+      script: cd marvin-recipes && pip install .

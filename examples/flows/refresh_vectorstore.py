@@ -4,7 +4,6 @@ from marvin_recipes.documents import Document
 from marvin_recipes.loaders.base import Loader
 from marvin_recipes.loaders.discourse import DiscourseLoader
 from marvin_recipes.loaders.github import GitHubRepoLoader
-from marvin_recipes.loaders.openapi import OpenAPISpecLoader
 from marvin_recipes.loaders.web import HTMLLoader, SitemapLoader
 from marvin_recipes.vectorstores.chroma import Chroma
 from prefect import flow, task
@@ -34,10 +33,7 @@ prefect_loaders = [
         urls=["https://docs.prefect.io/sitemap.xml"],
         exclude=["api-ref"],
     ),
-    OpenAPISpecLoader(
-        openapi_spec_url="https://api.prefect.cloud/api/openapi.json",
-        api_doc_url="https://app.prefect.cloud/api",
-    ),
+    # OpenAPISpecLoader(openapi_spec_url="https://api.prefect.cloud/api/openapi.json"),
     HTMLLoader(
         urls=[
             "https://prefect.io/company",
