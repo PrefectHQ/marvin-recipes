@@ -1,3 +1,4 @@
 {
-  "Daily GitHub Digest": "examples/flows/github_digest.py:daily_github_digest"
+  "Daily GitHub Digest": "examples/flows/github_digest.py:daily_github_digest",
+  "Update Marvin's Knowledge": "examples/flows/refresh_vectorstore.py:update_marvin_knowledge"
 }

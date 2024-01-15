@@ -7,7 +7,6 @@ from marvin_recipes.loaders.github import GitHubRepoLoader
 from marvin_recipes.loaders.web import HTMLLoader, SitemapLoader
 from marvin_recipes.vectorstores.chroma import Chroma
 from prefect import flow, task
-from prefect.filesystems import GCS
 from prefect.tasks import task_input_hash
 from prefect.utilities.annotations import quote
 
@@ -53,7 +52,7 @@ prefect_loaders = [
     ),
     DiscourseLoader(
         url="https://discourse.prefect.io",
-        n_topic=300,
+        n_topic=100,
         include_topic_filter=include_topic_filter,
     ),
     GitHubRepoLoader(
@@ -83,7 +82,7 @@ async def run_loader(loader: Loader) -> list[Document]:
 @flow(
     name="Update Marvin's Knowledge",
     log_prints=True,
-    result_storage=GCS.load("marvin-result-storage"),
+    # result_storage=GCS.load("marvin-result-storage"),
 )
 async def update_marvin_knowledge(
     collection_name: str = "marvin",
